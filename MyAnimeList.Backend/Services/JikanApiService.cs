@@ -48,9 +48,13 @@ namespace MyAnimeList.Backend.Services
         {
             var anime = new Anime
             {
-                MalId = element.GetProperty("mal_id").GetInt32(),
-                Title = element.GetProperty("title").GetString() ?? string.Empty,
-                Episodes = element.TryGetProperty("episodes", out var episodes) ? episodes.GetInt32() : 0,
+                MalId = element.TryGetProperty("mal_id", out var malId) && malId.ValueKind != System.Text.Json.JsonValueKind.Null 
+                    ? malId.GetInt32() 
+                    : 0,
+                Title = element.TryGetProperty("title", out var title) ? title.GetString() ?? string.Empty : string.Empty,
+                Episodes = element.TryGetProperty("episodes", out var episodes) && episodes.ValueKind != System.Text.Json.JsonValueKind.Null 
+                    ? episodes.GetInt32() 
+                    : 0,
                 Status = element.TryGetProperty("status", out var status) ? status.GetString() : null,
                 Score = element.TryGetProperty("score", out var score) && score.ValueKind != System.Text.Json.JsonValueKind.Null
                     ? score.GetDouble()
