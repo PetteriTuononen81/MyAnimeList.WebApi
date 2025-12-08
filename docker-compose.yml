@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: myanimelist-db
+    environment:
+      POSTGRES_USER: animelistuser
+      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_DB: animelistdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - myanimelist-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U animelistuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: MyAnimeList.Backend/Dockerfile
+    container_name: myanimelist-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=animelistdb;Username=animelistuser;Password=your_secure_password;"
+    ports:
+      - "5000:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - myanimelist-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  myanimelist-network:
+    driver: bridge

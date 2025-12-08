@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MyAnimeList.Backend/MyAnimeList.Backend.csproj" />
+  <Project Path="MyAnimeList.Tests/MyAnimeList.Tests.csproj" />
+</Solution>
