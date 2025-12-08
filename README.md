@@ -142,7 +142,7 @@ MyAnimeList.WebApi/
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=animelistdb;Username=animelistuser;Password=your_password;"
+    "DefaultConnection": "Host=localhost;Port=5432;Database=anime;Username=animeuser;Password=your_password;"
   }
 }
 ```
@@ -223,10 +223,10 @@ docker compose up -d --build
 ### Database Connection
 ```bash
 # Test connection
-docker compose exec postgres psql -U animelistuser -d animelistdb -c "SELECT 1;"
+docker compose exec postgres psql -U animeuser -d anime -c "SELECT 1;"
 
 # View tables
-docker compose exec postgres psql -U animelistuser -d animelistdb -c "\dt"
+docker compose exec postgres psql -U animeuser -d anime -c "\dt"
 ```
 
 ### Cron Job Not Running

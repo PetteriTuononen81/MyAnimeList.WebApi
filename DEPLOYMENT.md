@@ -139,7 +139,7 @@ docker compose down -v
 docker compose exec api dotnet MyAnimeList.Backend.dll
 
 # Access PostgreSQL
-docker compose exec postgres psql -U animelistuser -d animelistdb
+docker compose exec postgres psql -U animeuser -d anime
 ```
 
 ## Troubleshooting
@@ -157,7 +157,7 @@ docker compose up -d --build
 ### Database connection issues
 ```bash
 # Verify PostgreSQL is running and accessible
-docker compose exec postgres psql -U animelistuser -d animelistdb -c "SELECT 1;"
+docker compose exec postgres psql -U animeuser -d anime -c "SELECT 1;"
 ```
 
 ### API is not responding
