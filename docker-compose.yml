@@ -1,10 +1,10 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: anime
+    container_name: myanimelist-db
     environment:
       POSTGRES_USER: animeuser
-      POSTGRES_PASSWORD: zEgvuzyDcPlQhcOQIPnaIZfFSsAeoXYILr8/lUD6Oes=
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: anime
     ports:
       - "5432:5432"
@@ -13,7 +13,7 @@ services:
     networks:
       - myanimelist-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U animelistuser"]
+      test: ["CMD-SHELL", "pg_isready -U animeuser"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,7 +26,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=anime;Username=animeuser;Password=zEgvuzyDcPlQhcOQIPnaIZfFSsAeoXYILr8/lUD6Oes=;"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=anime;Username=animeuser;Password=${DB_PASSWORD};"
     ports:
       - "5000:8080"
     depends_on:

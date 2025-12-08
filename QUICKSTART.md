@@ -136,7 +136,7 @@ curl http://localhost:5000/api/anime
 curl -X POST http://localhost:5000/api/anime/sync
 
 # View database
-docker compose exec postgres psql -U animelistuser -d animelistdb -c "SELECT COUNT(*) FROM \"Anime\";"
+docker compose exec postgres psql -U animeuser -d anime -c "SELECT COUNT(*) FROM \"Anime\";"
 
 # Check cron logs
 sudo tail -f /var/log/myanimelist-sync.log
@@ -147,7 +147,7 @@ sudo tail -f /var/log/myanimelist-sync.log
 ### API won't connect to database
 ```bash
 # Check if PostgreSQL is healthy
-docker compose exec postgres pg_isready -U animelistuser
+docker compose exec postgres pg_isready -U animeuser
 
 # Check container logs
 docker compose logs postgres
