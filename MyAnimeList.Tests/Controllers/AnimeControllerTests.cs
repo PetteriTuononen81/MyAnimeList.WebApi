@@ -324,7 +324,7 @@ namespace MyAnimeList.Tests.Controllers
 
             var returnValue = okResult.Value as dynamic;
             Assert.NotNull(returnValue);
-            Assert.Equal(3, returnValue.count);
+            Assert.Equal(3, (int)returnValue.count);
         }
 
         [Fact]

@@ -37,7 +37,7 @@ bld/
 *.snupkg
 .nuget/
 
-# Local environment variables
+# Local environment variables (NEVER COMMIT PASSWORDS!)
 .env
 .env.local
 .env.*.local

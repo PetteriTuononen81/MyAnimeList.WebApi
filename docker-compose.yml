@@ -4,7 +4,7 @@ services:
     container_name: myanimelist-db
     environment:
       POSTGRES_USER: animelistuser
-      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: animelistdb
     ports:
       - "5432:5432"
@@ -26,7 +26,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=animelistdb;Username=animelistuser;Password=your_secure_password;"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=animelistdb;Username=animelistuser;Password=${DB_PASSWORD};"
     ports:
       - "5000:8080"
     depends_on:

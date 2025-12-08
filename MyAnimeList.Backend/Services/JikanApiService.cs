@@ -70,12 +70,12 @@ namespace MyAnimeList.Backend.Services
                 if (aired.TryGetProperty("from", out var from) && from.ValueKind != System.Text.Json.JsonValueKind.Null)
                 {
                     if (DateTime.TryParse(from.GetString(), out var fromDate))
-                        anime.AiredFrom = fromDate;
+                        anime.AiredFrom = new DateTime(fromDate.Ticks, DateTimeKind.Utc);
                 }
                 if (aired.TryGetProperty("to", out var to) && to.ValueKind != System.Text.Json.JsonValueKind.Null)
                 {
                     if (DateTime.TryParse(to.GetString(), out var toDate))
-                        anime.AiredTo = toDate;
+                        anime.AiredTo = new DateTime(toDate.Ticks, DateTimeKind.Utc);
                 }
             }
 
