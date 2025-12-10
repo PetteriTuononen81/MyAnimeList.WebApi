@@ -13,7 +13,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AnimeDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Add HTTP Client for Jikan API
+// Add HTTP Client for Jikan API (for cron job sync only)
 builder.Services.AddHttpClient<JikanApiService>();
 
 // Add database initialization service

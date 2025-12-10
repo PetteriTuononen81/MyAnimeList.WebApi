@@ -20,6 +20,10 @@ namespace MyAnimeList.Backend.Controllers
             _jikanApiService = jikanApiService;
         }
 
+        /// <summary>
+        /// Gets all anime from PostgreSQL database with pagination
+        /// Does NOT call external API - only returns cached data
+        /// </summary>
         [HttpGet]
         public async Task<ActionResult<AnimeListResponseDto>> GetAllAnime([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
@@ -44,6 +48,10 @@ namespace MyAnimeList.Backend.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// Gets a single anime by ID from PostgreSQL database
+        /// Does NOT call external API
+        /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<Anime>> GetAnimeById(int id)
         {
@@ -54,6 +62,10 @@ namespace MyAnimeList.Backend.Controllers
             return Ok(anime);
         }
 
+        /// <summary>
+        /// Searches anime in PostgreSQL database
+        /// Does NOT call external API
+        /// </summary>
         [HttpGet("search")]
         public async Task<ActionResult<IEnumerable<Anime>>> SearchAnime([FromQuery] string query)
         {
@@ -69,6 +81,11 @@ namespace MyAnimeList.Backend.Controllers
             return Ok(results);
         }
 
+        /// <summary>
+        /// Syncs anime data from Jikan API to PostgreSQL database
+        /// ONLY called by cron job (monthly)
+        /// NOT called by the Android app
+        /// </summary>
         [HttpPost("sync")]
         public async Task<ActionResult<object>> SyncAnimeData()
         {
