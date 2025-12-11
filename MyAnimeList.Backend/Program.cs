@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MyAnimeList.Backend.Data;
+using MyAnimeList.Backend.Repositories;
 using MyAnimeList.Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,10 +15,24 @@ builder.Services.AddDbContext<AnimeDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 // Add HTTP Client for Jikan API (for cron job sync only)
-builder.Services.AddHttpClient<JikanApiService>();
+builder.Services.AddHttpClient<JikanApiClient>();
 
 // Add database initialization service
 builder.Services.AddScoped<DatabaseInitializationService>();
+builder.Services.AddScoped<IAnimeService, AnimeService>();
+
+builder.Services.AddScoped<IAnimeRepository, AnimeRepository>();
+
+// Add CORS for Android app
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAllOrigins", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 var app = builder.Build();
 
@@ -34,7 +49,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// Remove or comment out HTTPS redirect for local HTTP access
+// app.UseHttpsRedirection();
+
+app.UseCors("AllowAllOrigins");
 
 app.UseAuthorization();
 

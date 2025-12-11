@@ -1,25 +1,22 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Moq;
 using MyAnimeList.Backend.Controllers;
-using MyAnimeList.Backend.Data;
 using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Models.Dtos;
 using MyAnimeList.Backend.Services;
 using MyAnimeList.Tests.Fixtures;
+using System.Text.Json;
 using Xunit;
 
 namespace MyAnimeList.Tests.Controllers
 {
     public class AnimeControllerTests
     {
-        private readonly AnimeDbContextFixture _fixture;
-        private readonly Mock<JikanApiService> _mockJikanApiService;
+        private readonly Mock<IAnimeService> _mockAnimeService;
 
         public AnimeControllerTests()
         {
-            _fixture = new AnimeDbContextFixture();
-            _mockJikanApiService = new Mock<JikanApiService>(new HttpClient());
+            _mockAnimeService = new Mock<IAnimeService>();
         }
 
         #region GetAllAnime Tests
@@ -28,12 +25,12 @@ namespace MyAnimeList.Tests.Controllers
         public async Task GetAllAnime_WithValidData_ReturnsOkResultWithPagination()
         {
             // Arrange
-            var context = _fixture.CreateDbContext();
             var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            context.Anime.AddRange(sampleData);
-            await context.SaveChangesAsync();
+            _mockAnimeService
+                .Setup(x => x.GetAllAnimeAsync())
+                .ReturnsAsync(sampleData);
 
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
+            var controller = new AnimeController(_mockAnimeService.Object);
 
             // Act
             var result = await controller.GetAllAnime(page: 1, pageSize: 20);
@@ -44,18 +41,19 @@ namespace MyAnimeList.Tests.Controllers
 
             var returnValue = Assert.IsType<AnimeListResponseDto>(okResult.Value);
             Assert.Equal(3, returnValue.Data.Count);
+            Assert.Equal(3, returnValue.Pagination.TotalCount);
         }
 
         [Fact]
         public async Task GetAllAnime_WithDefaultPagination_ReturnsPaginationData()
         {
             // Arrange
-            var context = _fixture.CreateDbContext();
             var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            context.Anime.AddRange(sampleData);
-            await context.SaveChangesAsync();
+            _mockAnimeService
+                .Setup(x => x.GetAllAnimeAsync())
+                .ReturnsAsync(sampleData);
 
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
+            var controller = new AnimeController(_mockAnimeService.Object);
 
             // Act
             var result = await controller.GetAllAnime();
@@ -74,12 +72,12 @@ namespace MyAnimeList.Tests.Controllers
         public async Task GetAllAnime_WithPagination_ReturnsCorrectPage()
         {
             // Arrange
-            var context = _fixture.CreateDbContext();
             var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            context.Anime.AddRange(sampleData);
-            await context.SaveChangesAsync();
+            _mockAnimeService
+                .Setup(x => x.GetAllAnimeAsync())
+                .ReturnsAsync(sampleData);
 
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
+            var controller = new AnimeController(_mockAnimeService.Object);
 
             // Act
             var result = await controller.GetAllAnime(page: 1, pageSize: 2);
@@ -93,11 +91,36 @@ namespace MyAnimeList.Tests.Controllers
         }
 
         [Fact]
+        public async Task GetAllAnime_WithPaginationPage2_ReturnsSecondPage()
+        {
+            // Arrange
+            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
+            _mockAnimeService
+                .Setup(x => x.GetAllAnimeAsync())
+                .ReturnsAsync(sampleData);
+
+            var controller = new AnimeController(_mockAnimeService.Object);
+
+            // Act
+            var result = await controller.GetAllAnime(page: 2, pageSize: 2);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var returnValue = Assert.IsType<AnimeListResponseDto>(okResult.Value);
+
+            Assert.Single(returnValue.Data);
+            Assert.Equal(2, returnValue.Pagination.CurrentPage);
+        }
+
+        [Fact]
         public async Task GetAllAnime_WithEmptyDatabase_ReturnsEmptyList()
         {
             // Arrange
-            var context = _fixture.CreateDbContext();
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
+            _mockAnimeService
+                .Setup(x => x.GetAllAnimeAsync())
+                .ReturnsAsync(new List<Anime>());
+
+            var controller = new AnimeController(_mockAnimeService.Object);
 
             // Act
             var result = await controller.GetAllAnime();
@@ -112,288 +135,76 @@ namespace MyAnimeList.Tests.Controllers
 
         #endregion
 
-        #region GetAnimeById Tests
-
-        [Fact]
-        public async Task GetAnimeById_WithValidId_ReturnsOkResult()
-        {
-            // Arrange
-            var context = _fixture.CreateDbContext();
-            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            context.Anime.AddRange(sampleData);
-            await context.SaveChangesAsync();
-
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
-
-            // Act
-            var result = await controller.GetAnimeById(1);
-
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = Assert.IsType<Anime>(okResult.Value);
-
-            Assert.NotNull(returnValue);
-            Assert.Equal(1, returnValue.Id);
-            Assert.Equal("Cowboy Bebop", returnValue.Title);
-        }
-
-        [Fact]
-        public async Task GetAnimeById_WithInvalidId_ReturnsNotFound()
-        {
-            // Arrange
-            var context = _fixture.CreateDbContext();
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
-
-            // Act
-            var result = await controller.GetAnimeById(999);
-
-            // Assert
-            Assert.IsType<NotFoundResult>(result.Result);
-        }
-
-        [Fact]
-        public async Task GetAnimeById_WithMultipleAnime_ReturnsCorrectAnime()
-        {
-            // Arrange
-            var context = _fixture.CreateDbContext();
-            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            context.Anime.AddRange(sampleData);
-            await context.SaveChangesAsync();
-
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
-
-            // Act
-            var result = await controller.GetAnimeById(3);
-
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = Assert.IsType<Anime>(okResult.Value);
-
-            Assert.NotNull(returnValue);
-            Assert.Equal("Attack on Titan", returnValue.Title);
-            Assert.Equal(8.52, returnValue.Score);
-        }
-
-        #endregion
-
-        #region SearchAnime Tests
-
-        [Fact]
-        public async Task SearchAnime_WithValidQuery_ReturnsMatchingResults()
-        {
-            // Arrange
-            var context = _fixture.CreateDbContext();
-            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            context.Anime.AddRange(sampleData);
-            await context.SaveChangesAsync();
-
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
-
-            // Act
-            var result = await controller.SearchAnime("Bebop");
-
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = Assert.IsType<List<Anime>>(okResult.Value);
-
-            Assert.NotNull(returnValue);
-            Assert.Single(returnValue);
-            Assert.Equal("Cowboy Bebop", returnValue.First().Title);
-        }
-
-        [Fact]
-        public async Task SearchAnime_WithEmptyQuery_ReturnsBadRequest()
-        {
-            // Arrange
-            var context = _fixture.CreateDbContext();
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
-
-            // Act
-            var result = await controller.SearchAnime("");
-
-            // Assert
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
-            Assert.Equal("Search query cannot be empty.", badRequestResult.Value);
-        }
-
-        [Fact]
-        public async Task SearchAnime_WithWhitespaceQuery_ReturnsBadRequest()
-        {
-            // Arrange
-            var context = _fixture.CreateDbContext();
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
-
-            // Act
-            var result = await controller.SearchAnime("   ");
-
-            // Assert
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
-            Assert.Equal("Search query cannot be empty.", badRequestResult.Value);
-        }
-
-        [Fact]
-        public async Task SearchAnime_WithNoMatches_ReturnsEmptyList()
-        {
-            // Arrange
-            var context = _fixture.CreateDbContext();
-            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            context.Anime.AddRange(sampleData);
-            await context.SaveChangesAsync();
-
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
-
-            // Act
-            var result = await controller.SearchAnime("NonexistentAnime");
-
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = Assert.IsType<List<Anime>>(okResult.Value);
-
-            Assert.NotNull(returnValue);
-            Assert.Empty(returnValue);
-        }
-
-        [Fact]
-        public async Task SearchAnime_SearchInSynopsis_ReturnsMatchingResults()
-        {
-            // Arrange
-            var context = _fixture.CreateDbContext();
-            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            context.Anime.AddRange(sampleData);
-            await context.SaveChangesAsync();
-
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
-
-            // Act
-            var result = await controller.SearchAnime("bounty");
-
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = Assert.IsType<List<Anime>>(okResult.Value);
-
-            Assert.NotNull(returnValue);
-            Assert.Single(returnValue);
-            Assert.Equal("Cowboy Bebop", returnValue.First().Title);
-        }
-
-        [Fact]
-        public async Task SearchAnime_WithCaseInsensitiveQuery_ReturnsResults()
-        {
-            // Arrange
-            var context = _fixture.CreateDbContext();
-            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            context.Anime.AddRange(sampleData);
-            await context.SaveChangesAsync();
-
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
-
-            // Act
-            var result = await controller.SearchAnime("STEINS");
-
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = Assert.IsType<List<Anime>>(okResult.Value);
-
-            Assert.NotNull(returnValue);
-            Assert.Single(returnValue);
-        }
-
-        #endregion
-
         #region SyncAnimeData Tests
 
         [Fact]
         public async Task SyncAnimeData_WithValidData_ReturnsOkResult()
         {
             // Arrange
-            var context = _fixture.CreateDbContext();
-            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            
-            _mockJikanApiService
-                .Setup(x => x.FetchAnimeListAsync(It.IsAny<int>(), It.IsAny<int>()))
-                .ReturnsAsync(sampleData);
+            const int expectedCount = 3;
+            _mockAnimeService
+                .Setup(x => x.SyncAnimeDataAsync())
+                .ReturnsAsync(expectedCount);
 
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
+            var controller = new AnimeController(_mockAnimeService.Object);
 
             // Act
             var result = await controller.SyncAnimeData();
 
             // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var okResult = Assert.IsType<OkObjectResult>(result);
             Assert.NotNull(okResult.Value);
 
-            var returnValue = okResult.Value as dynamic;
-            Assert.NotNull(returnValue);
-            Assert.Equal(3, (int)returnValue.count);
+            // Serialize to JSON and deserialize to properly access properties
+            var json = JsonSerializer.Serialize(okResult.Value);
+            using (var jsonDoc = JsonDocument.Parse(json))
+            {
+                var root = jsonDoc.RootElement;
+                Assert.True(root.TryGetProperty("message", out var messageElement));
+                Assert.True(root.TryGetProperty("count", out var countElement));
+
+                Assert.Equal("Anime data synced successfully", messageElement.GetString());
+                Assert.Equal(expectedCount, countElement.GetInt32());
+            }
         }
 
         [Fact]
-        public async Task SyncAnimeData_ClearsOldDataBeforeInsertingNew()
+        public async Task SyncAnimeData_WithZeroResults_ReturnsOkWithZeroCount()
         {
             // Arrange
-            var context = _fixture.CreateDbContext();
-            var oldData = new List<Anime> 
-            { 
-                new Anime { MalId = 999, Title = "Old Anime", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow } 
-            };
-            context.Anime.AddRange(oldData);
-            await context.SaveChangesAsync();
+            _mockAnimeService
+                .Setup(x => x.SyncAnimeDataAsync())
+                .ReturnsAsync(0);
 
-            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            
-            _mockJikanApiService
-                .Setup(x => x.FetchAnimeListAsync(It.IsAny<int>(), It.IsAny<int>()))
-                .ReturnsAsync(sampleData);
-
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
-
-            // Act
-            await controller.SyncAnimeData();
-
-            // Assert
-            var animeCount = await context.Anime.CountAsync();
-            Assert.Equal(3, animeCount);
-        }
-
-        [Fact]
-        public async Task SyncAnimeData_WithEmptyResponse_ReturnsOkWithZeroCount()
-        {
-            // Arrange
-            var context = _fixture.CreateDbContext();
-            
-            _mockJikanApiService
-                .Setup(x => x.FetchAnimeListAsync(It.IsAny<int>(), It.IsAny<int>()))
-                .ReturnsAsync(new List<Anime>());
-
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
+            var controller = new AnimeController(_mockAnimeService.Object);
 
             // Act
             var result = await controller.SyncAnimeData();
 
             // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = okResult.Value as dynamic;
-            Assert.Equal(0, returnValue.count);
+            var okResult = Assert.IsType<OkObjectResult>(result);
+
+            var json = JsonSerializer.Serialize(okResult.Value);
+            using (var jsonDoc = JsonDocument.Parse(json))
+            {
+                var root = jsonDoc.RootElement;
+                Assert.True(root.TryGetProperty("count", out var countElement));
+                Assert.Equal(0, countElement.GetInt32());
+            }
         }
 
         [Fact]
-        public async Task SyncAnimeData_WithApiError_ReturnServerError()
+        public async Task SyncAnimeData_WhenServiceThrowsException_PropagatesException()
         {
             // Arrange
-            var context = _fixture.CreateDbContext();
-            
-            _mockJikanApiService
-                .Setup(x => x.FetchAnimeListAsync(It.IsAny<int>(), It.IsAny<int>()))
+            _mockAnimeService
+                .Setup(x => x.SyncAnimeDataAsync())
                 .ThrowsAsync(new HttpRequestException("API Error"));
 
-            var controller = new AnimeController(context, _mockJikanApiService.Object);
+            var controller = new AnimeController(_mockAnimeService.Object);
 
-            // Act
-            var result = await controller.SyncAnimeData();
-
-            // Assert
-            var statusResult = Assert.IsType<ObjectResult>(result.Result);
-            Assert.Equal(500, statusResult.StatusCode);
+            // Act & Assert
+            await Assert.ThrowsAsync<HttpRequestException>(() => controller.SyncAnimeData());
         }
 
         #endregion

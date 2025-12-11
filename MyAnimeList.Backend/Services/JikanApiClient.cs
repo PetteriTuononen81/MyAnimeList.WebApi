@@ -3,12 +3,12 @@ using MyAnimeList.Backend.Models;
 
 namespace MyAnimeList.Backend.Services
 {
-    public class JikanApiService
+    public class JikanApiClient
     {
         private readonly HttpClient _httpClient;
         private const string JikanBaseUrl = "https://api.jikan.moe/v4";
 
-        public JikanApiService(HttpClient httpClient)
+        public JikanApiClient(HttpClient httpClient)
         {
             _httpClient = httpClient;
         }

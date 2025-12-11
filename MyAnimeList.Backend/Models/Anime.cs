@@ -16,5 +16,19 @@
         public string? Genre { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+
+        public void Update(Anime newAnime)
+        {
+            Title = newAnime.Title;
+            Episodes = newAnime.Episodes;
+            Status = newAnime.Status;
+            Score = newAnime.Score;
+            Synopsis = newAnime.Synopsis;
+            ImageUrl = newAnime.ImageUrl;
+            Genre = newAnime.Genre;
+            AiredFrom = newAnime.AiredFrom;
+            AiredTo = newAnime.AiredTo;
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
 }
