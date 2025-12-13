@@ -4,10 +4,9 @@ services:
     container_name: myanimelist-db
     environment:
       POSTGRES_USER: animeuser
-      POSTGRES_PASSWORD: OgO49bOAychqxIvPXBzhBYARa+j5ce+PwzRIlg0rZGs=
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: anime
     ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -28,7 +27,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=anime;Username=animeuser;Password=OgO49bOAychqxIvPXBzhBYARa+j5ce+PwzRIlg0rZGs=;"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=anime;Username=animeuser;Password=${DB_PASSWORD};"
     ports:
       - "5000:8080"
     depends_on:
