@@ -24,7 +24,10 @@ namespace MyAnimeList.Backend.Controllers
         public async Task<ActionResult<AnimeListResponseDto>> GetAllAnime([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
             var allAnime = await _animeService.GetAllAnimeAsync();
+            
             var paginatedAnime = allAnime
+                .OrderByDescending(a => a.Score)
+                .ThenBy(a => a.Title)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
