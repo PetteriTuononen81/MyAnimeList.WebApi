@@ -28,7 +28,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=anime;Username=animeuser;Password=${DB_PASSWORD};"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=anime;Username=animeuser;Password=OgO49bOAychqxIvPXBzhBYARa+j5ce+PwzRIlg0rZGs=;"
     ports:
       - "5000:8080"
     depends_on:
