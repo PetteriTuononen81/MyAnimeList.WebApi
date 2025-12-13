@@ -22,7 +22,6 @@ namespace MyAnimeList.Backend.Services
                 response.EnsureSuccessStatusCode();
 
                 var content = await response.Content.ReadAsStringAsync();
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var jsonDocument = JsonDocument.Parse(content);
                 var animeList = new List<Anime>();
 
@@ -46,61 +45,21 @@ namespace MyAnimeList.Backend.Services
 
         private Anime ParseAnimeFromJson(JsonElement element)
         {
-            var anime = new Anime
+            return new Anime
             {
-                MalId = element.TryGetProperty("mal_id", out var malId) && malId.ValueKind != System.Text.Json.JsonValueKind.Null 
-                    ? malId.GetInt32() 
-                    : 0,
-                Title = element.TryGetProperty("title", out var title) ? title.GetString() ?? string.Empty : string.Empty,
-                Episodes = element.TryGetProperty("episodes", out var episodes) && episodes.ValueKind != System.Text.Json.JsonValueKind.Null 
-                    ? episodes.GetInt32() 
-                    : 0,
-                Status = element.TryGetProperty("status", out var status) ? status.GetString() : null,
-                Score = element.TryGetProperty("score", out var score) && score.ValueKind != System.Text.Json.JsonValueKind.Null
-                    ? score.GetDouble()
-                    : null,
-                Synopsis = element.TryGetProperty("synopsis", out var synopsis) ? synopsis.GetString() : null,
-                ImageUrl = GetImageUrl(element),
+                MalId = element.GetIntProperty("mal_id"),
+                Title = element.GetStringProperty("title") ?? string.Empty,
+                Episodes = element.GetIntProperty("episodes"),
+                Status = element.GetStringProperty("status"),
+                Score = element.GetDoubleProperty("score"),
+                Synopsis = element.GetStringProperty("synopsis"),
+                ImageUrl = element.GetNestedStringProperty("images", "jpg", "image_url"),
+                AiredFrom = element.GetNestedProperty("aired")?.GetDateTimeProperty("from"),
+                AiredTo = element.GetNestedProperty("aired")?.GetDateTimeProperty("to"),
+                Genre = element.GetArrayAsString("genres", "name"),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-
-            if (element.TryGetProperty("aired", out var aired))
-            {
-                if (aired.TryGetProperty("from", out var from) && from.ValueKind != System.Text.Json.JsonValueKind.Null)
-                {
-                    if (DateTime.TryParse(from.GetString(), out var fromDate))
-                        anime.AiredFrom = new DateTime(fromDate.Ticks, DateTimeKind.Utc);
-                }
-                if (aired.TryGetProperty("to", out var to) && to.ValueKind != System.Text.Json.JsonValueKind.Null)
-                {
-                    if (DateTime.TryParse(to.GetString(), out var toDate))
-                        anime.AiredTo = new DateTime(toDate.Ticks, DateTimeKind.Utc);
-                }
-            }
-
-            if (element.TryGetProperty("genres", out var genres))
-            {
-                var genreNames = new List<string>();
-                foreach (var genre in genres.EnumerateArray())
-                {
-                    if (genre.TryGetProperty("name", out var name))
-                        genreNames.Add(name.GetString() ?? "Unknown");
-                }
-                anime.Genre = string.Join(", ", genreNames);
-            }
-
-            return anime;
-        }
-
-        private string? GetImageUrl(JsonElement element)
-        {
-            if (element.TryGetProperty("images", out var images))
-            {
-                if (images.TryGetProperty("jpg", out var jpg) && jpg.TryGetProperty("image_url", out var url))
-                    return url.GetString();
-            }
-            return null;
         }
     }
 }

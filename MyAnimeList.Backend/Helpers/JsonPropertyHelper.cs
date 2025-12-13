@@ -1,0 +1,104 @@
+using System.Text.Json;
+
+namespace MyAnimeList.Backend.Helpers
+{
+    /// <summary>
+    /// Helper class for safely extracting typed values from JsonElement properties
+    /// </summary>
+    public static class JsonPropertyHelper
+    {
+        /// <summary>
+        /// Gets an integer property from a JsonElement, returning a default value if not found or null
+        /// </summary>
+        public static int GetIntProperty(this JsonElement element, string propertyName, int defaultValue = 0)
+        {
+            if (element.TryGetProperty(propertyName, out var property) && property.ValueKind != JsonValueKind.Null)
+            {
+                try
+                {
+                    return property.GetInt32();
+                }
+                catch (InvalidOperationException)
+                {
+                    return defaultValue;
+                }
+            }
+            return defaultValue;
+        }
+
+        /// <summary>
+        /// Gets a string property from a JsonElement, returning null if not found or null
+        /// </summary>
+        public static string? GetStringProperty(this JsonElement element, string propertyName)
+        {
+            if (element.TryGetProperty(propertyName, out var property) && property.ValueKind != JsonValueKind.Null)
+            {
+                return property.GetString();
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets a double property from a JsonElement, returning null if not found or null
+        /// </summary>
+        public static double? GetDoubleProperty(this JsonElement element, string propertyName)
+        {
+            if (element.TryGetProperty(propertyName, out var property) && property.ValueKind != JsonValueKind.Null)
+            {
+                try
+                {
+                    return property.GetDouble();
+                }
+                catch (InvalidOperationException)
+                {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets a boolean property from a JsonElement, returning a default value if not found or null
+        /// </summary>
+        public static bool GetBoolProperty(this JsonElement element, string propertyName, bool defaultValue = false)
+        {
+            if (element.TryGetProperty(propertyName, out var property) && property.ValueKind != JsonValueKind.Null)
+            {
+                try
+                {
+                    return property.GetBoolean();
+                }
+                catch (InvalidOperationException)
+                {
+                    return defaultValue;
+                }
+            }
+            return defaultValue;
+        }
+
+        /// <summary>
+        /// Gets a nested JsonElement property
+        /// </summary>
+        public static JsonElement? GetNestedProperty(this JsonElement element, string propertyName)
+        {
+            if (element.TryGetProperty(propertyName, out var property) && property.ValueKind != JsonValueKind.Null)
+            {
+                return property;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets a DateTime property from a JsonElement string representation
+        /// </summary>
+        public static DateTime? GetDateTimeProperty(this JsonElement element, string propertyName)
+        {
+            var dateString = element.GetStringProperty(propertyName);
+            if (dateString != null && DateTime.TryParse(dateString, out var date))
+            {
+                return new DateTime(date.Ticks, DateTimeKind.Utc);
+            }
+            return null;
+        }
+    }
+}
