@@ -17,33 +17,20 @@ namespace MyAnimeList.Backend.Controllers
         }   
 
         /// <summary>
-        /// Gets all anime from PostgreSQL database with pagination
+        /// Gets all anime from PostgreSQL database
         /// Does NOT call external API - only returns cached data
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<AnimeListResponseDto>> GetAllAnime([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        public async Task<ActionResult<List<Anime>>> GetAllAnime()
         {
             var allAnime = await _animeService.GetAllAnimeAsync();
             
-            var paginatedAnime = allAnime
+            var sortedAnime = allAnime
                 .OrderByDescending(a => a.Score)
                 .ThenBy(a => a.Title)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
                 .ToList();
 
-            var response = new AnimeListResponseDto
-            {
-                Data = paginatedAnime,
-                Pagination = new PaginationDto
-                {
-                    CurrentPage = page,
-                    PageSize = pageSize,
-                    TotalCount = allAnime.Count,
-                    TotalPages = (int)Math.Ceiling(allAnime.Count / (double)pageSize)
-                }
-            };
-            return Ok(response);
+            return Ok(sortedAnime);
         }
 
         /// <summary>
