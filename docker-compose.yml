@@ -4,7 +4,7 @@ services:
     container_name: myanimelist-db
     environment:
       POSTGRES_USER: animeuser
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: OgO49bOAychqxIvPXBzhBYARa+j5ce+PwzRIlg0rZGs=
       POSTGRES_DB: anime
     ports:
       - "5432:5432"
