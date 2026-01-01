@@ -16,6 +16,10 @@ namespace MyAnimeList.Backend.Services
         private readonly JikanApiClient _jikanApiClient;
         private readonly ILogger<AnimeService> _logger;
 
+        // Jikan API rate limit: 3 requests per second, so 4 seconds is safe
+        private const int DelayBetweenRequestsMs = 4000;
+        private const int ItemsPerPage = 25;
+
         public AnimeService(IAnimeRepository animeRepository, JikanApiClient jikanApiClient, ILogger<AnimeService> logger)
         {
             _animeRepository = animeRepository;
@@ -35,45 +39,69 @@ namespace MyAnimeList.Backend.Services
             {
                 _logger.LogInformation("Starting anime data sync from Jikan API...");
 
-                var animeList = await _jikanApiClient.FetchAnimeListAsync(page: 1, limit: 25);
-
-                if (animeList.Count == 0)
-                {
-                    _logger.LogWarning("No anime data fetched from Jikan API");
-                    return 0;
-                }
-
-                _logger.LogInformation("Fetched {AnimeCount} anime from Jikan API. Processing updates...", animeList.Count);
-
                 var allExistingAnime = await _animeRepository.GetAllAsync();
-                int insertCount = 0;
-                int updateCount = 0;
+                int totalInsertCount = 0;
+                int totalUpdateCount = 0;
+                int currentPage = 1;
+                int lastPage = 1;
 
-                foreach (var newAnime in animeList)
+                do
                 {
-                    var existingAnime = allExistingAnime.FirstOrDefault(a => a.MalId == newAnime.MalId);
+                    _logger.LogInformation("Fetching page {CurrentPage} of {LastPage}...", currentPage, lastPage);
 
-                    if (existingAnime != null)
+                    // Fetch current page
+                    var response = await _jikanApiClient.FetchAnimePageAsync(page: currentPage, limit: ItemsPerPage);
+
+                    if (response.Data.Count == 0)
                     {
-                        // Update existing anime
-                        _logger.LogInformation("Updating anime with MalId: {MalId}", newAnime.MalId);
-
-                        existingAnime.Update(newAnime);
-
-                        await _animeRepository.UpdateAsync(existingAnime);
-                        updateCount++;
+                        _logger.LogWarning("No anime data fetched from page {CurrentPage}", currentPage);
+                        break;
                     }
-                    else
+
+                    // Update last page from API response
+                    lastPage = response.LastPage;
+
+                    _logger.LogInformation("Fetched {AnimeCount} anime from page {CurrentPage}/{LastPage}. Processing...", 
+                        response.Data.Count, currentPage, lastPage);
+
+                    // Process each anime
+                    foreach (var newAnime in response.Data)
                     {
-                        // Insert new anime
-                        _logger.LogInformation("Inserting new anime with MalId: {MalId}", newAnime.MalId);
-                        await _animeRepository.AddAsync(newAnime);
-                        insertCount++;
-                    }
-                }
+                        var existingAnime = allExistingAnime.FirstOrDefault(a => a.MalId == newAnime.MalId);
 
-                _logger.LogInformation("Sync completed: {InsertCount} inserted, {UpdateCount} updated", insertCount, updateCount);
-                return insertCount + updateCount;
+                        if (existingAnime != null)
+                        {
+                            existingAnime.Update(newAnime);
+                            await _animeRepository.UpdateAsync(existingAnime);
+                            totalUpdateCount++;
+                        }
+                        else
+                        {
+                            await _animeRepository.AddAsync(newAnime);
+                            allExistingAnime.Add(newAnime); // Add to local list to prevent duplicates
+                            totalInsertCount++;
+                        }
+                    }
+
+                    _logger.LogInformation("Page {CurrentPage} processed. Running total: {InsertCount} inserted, {UpdateCount} updated", 
+                        currentPage, totalInsertCount, totalUpdateCount);
+
+                    // Move to next page
+                    currentPage++;
+
+                    // Wait 4 seconds before next API call (Jikan rate limit)
+                    if (response.HasNextPage)
+                    {
+                        _logger.LogInformation("Waiting {Delay}ms before next request (rate limit)...", DelayBetweenRequestsMs);
+                        await Task.Delay(DelayBetweenRequestsMs);
+                    }
+
+                } while (currentPage <= lastPage);
+
+                _logger.LogInformation("Sync completed! Total: {InsertCount} inserted, {UpdateCount} updated across {PageCount} pages", 
+                    totalInsertCount, totalUpdateCount, currentPage - 1);
+
+                return totalInsertCount + totalUpdateCount;
             }
             catch (Exception ex)
             {

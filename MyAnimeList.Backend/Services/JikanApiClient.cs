@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using MyAnimeList.Backend.Helpers;
 using MyAnimeList.Backend.Models;
 
 namespace MyAnimeList.Backend.Services
@@ -13,7 +14,10 @@ namespace MyAnimeList.Backend.Services
             _httpClient = httpClient;
         }
 
-        public async Task<List<Anime>> FetchAnimeListAsync(int page = 1, int limit = 25)
+        /// <summary>
+        /// Fetches a single page of anime data from Jikan API
+        /// </summary>
+        public async Task<JikanApiResponse> FetchAnimePageAsync(int page = 1, int limit = 25)
         {
             try
             {
@@ -25,6 +29,17 @@ namespace MyAnimeList.Backend.Services
                 var jsonDocument = JsonDocument.Parse(content);
                 var animeList = new List<Anime>();
 
+                // Parse pagination info
+                int lastPage = 1;
+                bool hasNextPage = false;
+
+                if (jsonDocument.RootElement.TryGetProperty("pagination", out var pagination))
+                {
+                    lastPage = pagination.GetIntProperty("last_visible_page", 1);
+                    hasNextPage = pagination.GetBoolProperty("has_next_page", false);
+                }
+
+                // Parse anime data
                 if (jsonDocument.RootElement.TryGetProperty("data", out var dataElement))
                 {
                     foreach (var item in dataElement.EnumerateArray())
@@ -34,13 +49,34 @@ namespace MyAnimeList.Backend.Services
                     }
                 }
 
-                return animeList;
+                return new JikanApiResponse
+                {
+                    Data = animeList,
+                    CurrentPage = page,
+                    LastPage = lastPage,
+                    HasNextPage = hasNextPage
+                };
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error fetching anime data: {ex.Message}");
-                return new List<Anime>();
+                return new JikanApiResponse
+                {
+                    Data = new List<Anime>(),
+                    CurrentPage = page,
+                    LastPage = 1,
+                    HasNextPage = false
+                };
             }
+        }
+
+        /// <summary>
+        /// Legacy method - fetches just the anime list (for backward compatibility)
+        /// </summary>
+        public async Task<List<Anime>> FetchAnimeListAsync(int page = 1, int limit = 25)
+        {
+            var response = await FetchAnimePageAsync(page, limit);
+            return response.Data;
         }
 
         private Anime ParseAnimeFromJson(JsonElement element)
@@ -61,5 +97,16 @@ namespace MyAnimeList.Backend.Services
                 UpdatedAt = DateTime.UtcNow
             };
         }
+    }
+
+    /// <summary>
+    /// Response from Jikan API including pagination info
+    /// </summary>
+    public class JikanApiResponse
+    {
+        public List<Anime> Data { get; set; } = new();
+        public int CurrentPage { get; set; }
+        public int LastPage { get; set; }
+        public bool HasNextPage { get; set; }
     }
 }

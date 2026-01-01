@@ -100,5 +100,40 @@ namespace MyAnimeList.Backend.Helpers
             }
             return null;
         }
+
+        /// <summary>
+        /// Gets a comma-separated string of items from an array property
+        /// </summary>
+        public static string? GetArrayAsString(this JsonElement element, string propertyName, string itemPropertyName, string separator = ", ")
+        {
+            var arrayElement = element.GetNestedProperty(propertyName);
+            if (arrayElement == null)
+                return null;
+
+            var items = arrayElement.Value.EnumerateArray()
+                .Select(item => item.GetStringProperty(itemPropertyName) ?? "Unknown")
+                .ToList();
+
+            return items.Any() ? string.Join(separator, items) : null;
+        }
+
+        /// <summary>
+        /// Gets a nested string property through multiple levels
+        /// </summary>
+        public static string? GetNestedStringProperty(this JsonElement element, params string[] propertyPath)
+        {
+            JsonElement current = element;
+
+            foreach (var propertyName in propertyPath[..^1])
+            {
+                var nested = current.GetNestedProperty(propertyName);
+                if (nested == null)
+                    return null;
+
+                current = nested.Value;
+            }
+
+            return current.GetStringProperty(propertyPath[^1]);
+        }
     }
 }

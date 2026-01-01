@@ -2,7 +2,6 @@
 using Moq;
 using MyAnimeList.Backend.Controllers;
 using MyAnimeList.Backend.Models;
-using MyAnimeList.Backend.Models.Dtos;
 using MyAnimeList.Backend.Services;
 using MyAnimeList.Tests.Fixtures;
 using System.Text.Json;
@@ -22,30 +21,7 @@ namespace MyAnimeList.Tests.Controllers
         #region GetAllAnime Tests
 
         [Fact]
-        public async Task GetAllAnime_WithValidData_ReturnsOkResultWithPagination()
-        {
-            // Arrange
-            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            _mockAnimeService
-                .Setup(x => x.GetAllAnimeAsync())
-                .ReturnsAsync(sampleData);
-
-            var controller = new AnimeController(_mockAnimeService.Object);
-
-            // Act
-            var result = await controller.GetAllAnime(page: 1, pageSize: 20);
-
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            Assert.NotNull(okResult.Value);
-
-            var returnValue = Assert.IsType<AnimeListResponseDto>(okResult.Value);
-            Assert.Equal(3, returnValue.Data.Count);
-            Assert.Equal(3, returnValue.Pagination.TotalCount);
-        }
-
-        [Fact]
-        public async Task GetAllAnime_WithDefaultPagination_ReturnsPaginationData()
+        public async Task GetAllAnime_WithValidData_ReturnsOkResultWithAnimeList()
         {
             // Arrange
             var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
@@ -60,16 +36,14 @@ namespace MyAnimeList.Tests.Controllers
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = Assert.IsType<AnimeListResponseDto>(okResult.Value);
+            Assert.NotNull(okResult.Value);
 
-            Assert.Equal(1, returnValue.Pagination.CurrentPage);
-            Assert.Equal(20, returnValue.Pagination.PageSize);
-            Assert.Equal(3, returnValue.Pagination.TotalCount);
-            Assert.Equal(1, returnValue.Pagination.TotalPages);
+            var returnValue = Assert.IsType<List<Anime>>(okResult.Value);
+            Assert.Equal(3, returnValue.Count);
         }
 
         [Fact]
-        public async Task GetAllAnime_WithPagination_ReturnsCorrectPage()
+        public async Task GetAllAnime_WithValidData_ReturnsSortedByScoreDescending()
         {
             // Arrange
             var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
@@ -80,36 +54,15 @@ namespace MyAnimeList.Tests.Controllers
             var controller = new AnimeController(_mockAnimeService.Object);
 
             // Act
-            var result = await controller.GetAllAnime(page: 1, pageSize: 2);
+            var result = await controller.GetAllAnime();
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = Assert.IsType<AnimeListResponseDto>(okResult.Value);
+            var returnValue = Assert.IsType<List<Anime>>(okResult.Value);
 
-            Assert.Equal(2, returnValue.Data.Count);
-            Assert.Equal(2, returnValue.Pagination.TotalPages);
-        }
-
-        [Fact]
-        public async Task GetAllAnime_WithPaginationPage2_ReturnsSecondPage()
-        {
-            // Arrange
-            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
-            _mockAnimeService
-                .Setup(x => x.GetAllAnimeAsync())
-                .ReturnsAsync(sampleData);
-
-            var controller = new AnimeController(_mockAnimeService.Object);
-
-            // Act
-            var result = await controller.GetAllAnime(page: 2, pageSize: 2);
-
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = Assert.IsType<AnimeListResponseDto>(okResult.Value);
-
-            Assert.Single(returnValue.Data);
-            Assert.Equal(2, returnValue.Pagination.CurrentPage);
+            // Verify sorted by score descending
+            Assert.True(returnValue[0].Score >= returnValue[1].Score);
+            Assert.True(returnValue[1].Score >= returnValue[2].Score);
         }
 
         [Fact]
@@ -127,10 +80,26 @@ namespace MyAnimeList.Tests.Controllers
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = Assert.IsType<AnimeListResponseDto>(okResult.Value);
+            var returnValue = Assert.IsType<List<Anime>>(okResult.Value);
 
-            Assert.Empty(returnValue.Data);
-            Assert.Equal(0, returnValue.Pagination.TotalCount);
+            Assert.Empty(returnValue);
+        }
+
+        [Fact]
+        public async Task GetAllAnime_CallsServiceMethod()
+        {
+            // Arrange
+            _mockAnimeService
+                .Setup(x => x.GetAllAnimeAsync())
+                .ReturnsAsync(new List<Anime>());
+
+            var controller = new AnimeController(_mockAnimeService.Object);
+
+            // Act
+            await controller.GetAllAnime();
+
+            // Assert
+            _mockAnimeService.Verify(x => x.GetAllAnimeAsync(), Times.Once);
         }
 
         #endregion
@@ -155,17 +124,15 @@ namespace MyAnimeList.Tests.Controllers
             var okResult = Assert.IsType<OkObjectResult>(result);
             Assert.NotNull(okResult.Value);
 
-            // Serialize to JSON and deserialize to properly access properties
             var json = JsonSerializer.Serialize(okResult.Value);
-            using (var jsonDoc = JsonDocument.Parse(json))
-            {
-                var root = jsonDoc.RootElement;
-                Assert.True(root.TryGetProperty("message", out var messageElement));
-                Assert.True(root.TryGetProperty("count", out var countElement));
+            using var jsonDoc = JsonDocument.Parse(json);
+            var root = jsonDoc.RootElement;
+            
+            Assert.True(root.TryGetProperty("message", out var messageElement));
+            Assert.True(root.TryGetProperty("count", out var countElement));
 
-                Assert.Equal("Anime data synced successfully", messageElement.GetString());
-                Assert.Equal(expectedCount, countElement.GetInt32());
-            }
+            Assert.Equal("Anime data synced successfully", messageElement.GetString());
+            Assert.Equal(expectedCount, countElement.GetInt32());
         }
 
         [Fact]
@@ -185,12 +152,11 @@ namespace MyAnimeList.Tests.Controllers
             var okResult = Assert.IsType<OkObjectResult>(result);
 
             var json = JsonSerializer.Serialize(okResult.Value);
-            using (var jsonDoc = JsonDocument.Parse(json))
-            {
-                var root = jsonDoc.RootElement;
-                Assert.True(root.TryGetProperty("count", out var countElement));
-                Assert.Equal(0, countElement.GetInt32());
-            }
+            using var jsonDoc = JsonDocument.Parse(json);
+            var root = jsonDoc.RootElement;
+            
+            Assert.True(root.TryGetProperty("count", out var countElement));
+            Assert.Equal(0, countElement.GetInt32());
         }
 
         [Fact]
@@ -205,6 +171,23 @@ namespace MyAnimeList.Tests.Controllers
 
             // Act & Assert
             await Assert.ThrowsAsync<HttpRequestException>(() => controller.SyncAnimeData());
+        }
+
+        [Fact]
+        public async Task SyncAnimeData_CallsServiceMethod()
+        {
+            // Arrange
+            _mockAnimeService
+                .Setup(x => x.SyncAnimeDataAsync())
+                .ReturnsAsync(10);
+
+            var controller = new AnimeController(_mockAnimeService.Object);
+
+            // Act
+            await controller.SyncAnimeData();
+
+            // Assert
+            _mockAnimeService.Verify(x => x.SyncAnimeDataAsync(), Times.Once);
         }
 
         #endregion
