@@ -88,8 +88,11 @@ namespace MyAnimeList.Backend.Controllers
         {
             var allAnime = await _animeService.GetAllAnimeAsync();
 
-            // Apply pagination HERE
+            // Apply sorting and pagination
             var paginatedAnime = allAnime
+                .OrderByDescending(a => a.Score.HasValue)  // Anime with scores come first
+                .ThenByDescending(a => a.Score ?? 0)       // Then sort by score descending
+                .ThenBy(a => a.Title)                       // Finally alphabetically by title
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
