@@ -82,16 +82,31 @@ namespace MyAnimeList.Backend.Controllers
         /// Gets all anime from PostgreSQL database (for app initial load or backup)
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<List<Anime>>> GetAllAnime()
+        public async Task<ActionResult<AnimeListResponseDto>> GetAllAnime(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
         {
             var allAnime = await _animeService.GetAllAnimeAsync();
 
-            var sortedAnime = allAnime
-                .OrderByDescending(a => a.Score)
-                .ThenBy(a => a.Title)
+            // Apply pagination HERE
+            var paginatedAnime = allAnime
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToList();
 
-            return Ok(sortedAnime);
+            var response = new AnimeListResponseDto
+            {
+                Data = paginatedAnime,  // Only send paginated data
+                Pagination = new PaginationDto
+                {
+                    CurrentPage = page,
+                    PageSize = pageSize,
+                    TotalCount = allAnime.Count,
+                    TotalPages = (int)Math.Ceiling(allAnime.Count / (double)pageSize)
+                }
+            };
+
+            return Ok(response);
         }
 
         /// <summary>

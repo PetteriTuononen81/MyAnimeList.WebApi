@@ -7,7 +7,9 @@ namespace MyAnimeList.Backend.Services
     public interface IAnimeService
     {
         Task<List<Anime>> GetAllAnimeAsync();
-        Task<int> SyncAnimeDataAsync();
+        Task<(List<Anime> Animes, int TotalCount)> GetAnimePaginatedAsync(int page, int pageSize);
+        Task<(List<Anime> Animes, int TotalCount)> SearchAnimeAsync(string searchTerm, int page, int pageSize);
+        Task<int> SyncAnimeDataAsync(int? maxPages = null);
     }
 
     public class AnimeService : IAnimeService
@@ -33,7 +35,52 @@ namespace MyAnimeList.Backend.Services
             return await _animeRepository.GetAllAsync();
         }
 
-        public async Task<int> SyncAnimeDataAsync()
+        public async Task<(List<Anime> Animes, int TotalCount)> GetAnimePaginatedAsync(int page, int pageSize)
+        {
+            _logger.LogInformation("Getting paginated anime - Page: {Page}, PageSize: {PageSize}", page, pageSize);
+
+            var allAnime = await _animeRepository.GetAllAsync();
+            var totalCount = allAnime.Count;
+
+            var paginatedAnime = allAnime
+                .OrderByDescending(a => a.Score)
+                .ThenBy(a => a.Title)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return (paginatedAnime, totalCount);
+        }
+
+        public async Task<(List<Anime> Animes, int TotalCount)> SearchAnimeAsync(string searchTerm, int page, int pageSize)
+        {
+            _logger.LogInformation("Searching anime with term: '{SearchTerm}' - Page: {Page}, PageSize: {PageSize}", 
+                searchTerm, page, pageSize);
+
+            var allAnime = await _animeRepository.GetAllAsync();
+
+            // Filter by search term (case-insensitive search in title, english title, and genre)
+            var filteredAnime = allAnime
+                .Where(a =>
+                    (a.Title != null && a.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                    (a.EnglishTitle != null && a.EnglishTitle.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                    (a.Genre != null && a.Genre.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                )
+                .ToList();
+
+            var totalCount = filteredAnime.Count;
+
+            var paginatedAnime = filteredAnime
+                .OrderByDescending(a => a.Score)
+                .ThenBy(a => a.Title)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return (paginatedAnime, totalCount);
+        }
+
+        public async Task<int> SyncAnimeDataAsync(int? maxPages = null)
         {
             try
             {
@@ -44,6 +91,9 @@ namespace MyAnimeList.Backend.Services
                 int totalUpdateCount = 0;
                 int currentPage = 1;
                 int lastPage = 1;
+
+                // Limit pages if maxPages is specified
+                int pagesToFetch = maxPages ?? int.MaxValue;
 
                 do
                 {
@@ -60,6 +110,12 @@ namespace MyAnimeList.Backend.Services
 
                     // Update last page from API response
                     lastPage = response.LastPage;
+
+                    // Limit to maxPages if specified
+                    if (maxPages.HasValue && lastPage > maxPages.Value)
+                    {
+                        lastPage = maxPages.Value;
+                    }
 
                     _logger.LogInformation("Fetched {AnimeCount} anime from page {CurrentPage}/{LastPage}. Processing...", 
                         response.Data.Count, currentPage, lastPage);
@@ -78,7 +134,7 @@ namespace MyAnimeList.Backend.Services
                         else
                         {
                             await _animeRepository.AddAsync(newAnime);
-                            allExistingAnime.Add(newAnime); // Add to local list to prevent duplicates
+                            allExistingAnime.Add(newAnime);
                             totalInsertCount++;
                         }
                     }
@@ -90,7 +146,7 @@ namespace MyAnimeList.Backend.Services
                     currentPage++;
 
                     // Wait 4 seconds before next API call (Jikan rate limit)
-                    if (response.HasNextPage)
+                    if (response.HasNextPage && currentPage <= lastPage)
                     {
                         _logger.LogInformation("Waiting {Delay}ms before next request (rate limit)...", DelayBetweenRequestsMs);
                         await Task.Delay(DelayBetweenRequestsMs);
