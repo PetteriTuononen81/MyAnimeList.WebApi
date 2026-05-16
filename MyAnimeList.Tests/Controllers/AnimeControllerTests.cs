@@ -38,12 +38,12 @@ namespace MyAnimeList.Tests.Controllers
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
             Assert.NotNull(okResult.Value);
 
-            var returnValue = Assert.IsType<List<Anime>>(okResult.Value);
-            Assert.Equal(3, returnValue.Count);
+            var returnValue = Assert.IsType<MyAnimeList.Backend.Models.Dtos.AnimeListResponseDto>(okResult.Value);
+            Assert.Equal(3, returnValue.Data.Count);
         }
 
         [Fact]
-        public async Task GetAllAnime_WithValidData_ReturnsSortedByScoreDescending()
+        public async Task GetAllAnime_WithValidData_ReturnsPaginationData()
         {
             // Arrange
             var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
@@ -54,15 +54,15 @@ namespace MyAnimeList.Tests.Controllers
             var controller = new AnimeController(_mockAnimeService.Object);
 
             // Act
-            var result = await controller.GetAllAnime();
+            var result = await controller.GetAllAnime(page: 1, pageSize: 20);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = Assert.IsType<List<Anime>>(okResult.Value);
+            var returnValue = Assert.IsType<MyAnimeList.Backend.Models.Dtos.AnimeListResponseDto>(okResult.Value);
 
-            // Verify sorted by score descending
-            Assert.True(returnValue[0].Score >= returnValue[1].Score);
-            Assert.True(returnValue[1].Score >= returnValue[2].Score);
+            Assert.Equal(1, returnValue.Pagination.CurrentPage);
+            Assert.Equal(20, returnValue.Pagination.PageSize);
+            Assert.Equal(3, returnValue.Pagination.TotalCount);
         }
 
         [Fact]
@@ -80,9 +80,9 @@ namespace MyAnimeList.Tests.Controllers
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var returnValue = Assert.IsType<List<Anime>>(okResult.Value);
+            var returnValue = Assert.IsType<MyAnimeList.Backend.Models.Dtos.AnimeListResponseDto>(okResult.Value);
 
-            Assert.Empty(returnValue);
+            Assert.Empty(returnValue.Data);
         }
 
         [Fact]
