@@ -43,8 +43,9 @@ namespace MyAnimeList.Backend.Services
             var totalCount = allAnime.Count;
 
             var paginatedAnime = allAnime
-                .OrderByDescending(a => a.Score)
-                .ThenBy(a => a.Title)
+                .OrderByDescending(a => a.Score.HasValue)  // Anime with scores come first
+                .ThenByDescending(a => a.Score ?? 0)       // Then sort by score descending
+                .ThenBy(a => a.Title)                       // Finally alphabetically by title
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -71,8 +72,9 @@ namespace MyAnimeList.Backend.Services
             var totalCount = filteredAnime.Count;
 
             var paginatedAnime = filteredAnime
-                .OrderByDescending(a => a.Score)
-                .ThenBy(a => a.Title)
+                .OrderByDescending(a => a.Score.HasValue)  // Anime with scores come first
+                .ThenByDescending(a => a.Score ?? 0)       // Then sort by score descending
+                .ThenBy(a => a.Title)                       // Finally alphabetically by title
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
