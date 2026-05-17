@@ -22,9 +22,9 @@ namespace MyAnimeList.Backend.Services
             {
                 _logger.LogInformation("Starting database initialization...");
 
-                // Create database if it doesn't exist
-                await _context.Database.EnsureCreatedAsync();
-                _logger.LogInformation("Database created or already exists.");
+                // Apply pending migrations
+                await _context.Database.MigrateAsync();
+                _logger.LogInformation("Database migrations applied successfully.");
 
             }
             catch (Exception ex)

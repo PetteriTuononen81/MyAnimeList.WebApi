@@ -16,39 +16,22 @@ namespace MyAnimeList.Backend.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<Anime>()
-                .HasKey(a => a.Id);
+            modelBuilder.Entity<Anime>(entity =>
+            {
+                entity.HasKey(a => a.Id);
+                entity.HasIndex(a => a.MalId).IsUnique();
+                entity.Property(a => a.Title).IsRequired();
+            });
 
-            modelBuilder.Entity<Anime>()
-                .HasIndex(a => a.MalId)
-                .IsUnique();
-
-            modelBuilder.Entity<Anime>()
-                .Property(a => a.Title)
-                .IsRequired();
-
-            modelBuilder.Entity<User>()
-                .HasKey(u => u.Id);
-
-            modelBuilder.Entity<User>()
-                .HasIndex(u => u.Email)
-                .IsUnique();
-
-            modelBuilder.Entity<User>()
-                .HasIndex(u => u.Username)
-                .IsUnique();
-
-            modelBuilder.Entity<User>()
-                .Property(u => u.Email)
-                .IsRequired();
-
-            modelBuilder.Entity<User>()
-                .Property(u => u.Username)
-                .IsRequired();
-
-            modelBuilder.Entity<User>()
-                .Property(u => u.PasswordHash)
-                .IsRequired();
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(u => u.Id);
+                entity.HasIndex(u => u.Email).IsUnique();
+                entity.HasIndex(u => u.Username).IsUnique();
+                entity.Property(u => u.Email).IsRequired();
+                entity.Property(u => u.Username).IsRequired();
+                entity.Property(u => u.PasswordHash).IsRequired();
+            });
         }
     }
 }

@@ -63,6 +63,16 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Auto-apply migrations in development
+if (app.Environment.IsDevelopment())
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AnimeDbContext>();
+        await dbContext.Database.MigrateAsync();
+    }
+}
+
 // Initialize database on startup
 using (var scope = app.Services.CreateScope())
 {
