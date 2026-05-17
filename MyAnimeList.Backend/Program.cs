@@ -63,29 +63,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Auto-apply migrations in development
-if (app.Environment.IsDevelopment())
-{
-    using (var scope = app.Services.CreateScope())
-    {
-        var dbContext = scope.ServiceProvider.GetRequiredService<AnimeDbContext>();
-
-        // Check if there are pending migrations
-        var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
-        if (pendingMigrations.Any())
-        {
-            Console.WriteLine($"Applying {pendingMigrations.Count()} pending migrations...");
-            await dbContext.Database.MigrateAsync();
-            Console.WriteLine("Migrations applied successfully.");
-        }
-        else
-        {
-            Console.WriteLine("Database is up to date. No migrations needed.");
-        }
-    }
-}
-
-// Initialize database on startup
+// Initialize database on startup (includes migration)
 using (var scope = app.Services.CreateScope())
 {
     var dbInitializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializationService>();
