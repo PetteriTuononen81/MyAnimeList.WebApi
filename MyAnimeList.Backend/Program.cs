@@ -69,7 +69,19 @@ if (app.Environment.IsDevelopment())
     using (var scope = app.Services.CreateScope())
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<AnimeDbContext>();
-        await dbContext.Database.MigrateAsync();
+
+        // Check if there are pending migrations
+        var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
+        if (pendingMigrations.Any())
+        {
+            Console.WriteLine($"Applying {pendingMigrations.Count()} pending migrations...");
+            await dbContext.Database.MigrateAsync();
+            Console.WriteLine("Migrations applied successfully.");
+        }
+        else
+        {
+            Console.WriteLine("Database is up to date. No migrations needed.");
+        }
     }
 }
 
