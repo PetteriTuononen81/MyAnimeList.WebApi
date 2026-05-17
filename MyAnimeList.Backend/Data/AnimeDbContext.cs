@@ -10,6 +10,7 @@ namespace MyAnimeList.Backend.Data
         }
 
         public DbSet<Anime> Anime { get; set; }
+        public DbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -24,6 +25,29 @@ namespace MyAnimeList.Backend.Data
 
             modelBuilder.Entity<Anime>()
                 .Property(a => a.Title)
+                .IsRequired();
+
+            modelBuilder.Entity<User>()
+                .HasKey(u => u.Id);
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.Email)
+                .IsRequired();
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.Username)
+                .IsRequired();
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.PasswordHash)
                 .IsRequired();
         }
     }
