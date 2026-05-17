@@ -18,16 +18,14 @@ namespace MyAnimeList.Backend.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterRequestDto request)
         {
-            if (string.IsNullOrWhiteSpace(request.Email) || 
-                string.IsNullOrWhiteSpace(request.Username) || 
-                string.IsNullOrWhiteSpace(request.Password))
+            if (!ModelState.IsValid)
             {
-                return BadRequest(new { message = "Email, username, and password are required" });
-            }
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
 
-            if (request.Password.Length < 6)
-            {
-                return BadRequest(new { message = "Password must be at least 6 characters long" });
+                return BadRequest(new { message = "Validation failed", errors });
             }
 
             var user = await _authService.RegisterAsync(request.Email, request.Username, request.Password);
@@ -58,10 +56,15 @@ namespace MyAnimeList.Backend.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                return BadRequest(new { message = "Validation failed", errors });
             }
 
-            var user = await _authService.LoginAsync(request.Email, request.Password);
+            var user = await _authService.LoginAsync(request.EmailOrUsername, request.Password);
 
             if (user == null)
             {

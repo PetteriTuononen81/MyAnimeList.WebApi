@@ -44,9 +44,15 @@ namespace MyAnimeList.Backend.Services
             return user;
         }
 
-        public async Task<User?> LoginAsync(string email, string password)
+        public async Task<User?> LoginAsync(string emailOrUsername, string password)
         {
-            var user = await GetUserByEmailAsync(email);
+            // Try to find user by email first, then by username
+            var user = await GetUserByEmailAsync(emailOrUsername);
+            if (user == null)
+            {
+                user = await GetUserByUsernameAsync(emailOrUsername);
+            }
+
             if (user == null)
                 return null;
 
