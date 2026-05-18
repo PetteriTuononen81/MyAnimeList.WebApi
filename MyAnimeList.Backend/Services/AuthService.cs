@@ -102,6 +102,16 @@ namespace MyAnimeList.Backend.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        public int? GetUserIdFromClaims(ClaimsPrincipal user)
+        {
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out var userId))
+            {
+                return userId;
+            }
+            return null;
+        }
+
         private static string HashPassword(string password)
         {
             using var hmac = new HMACSHA512();

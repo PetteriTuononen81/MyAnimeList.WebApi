@@ -1,4 +1,5 @@
 using MyAnimeList.Backend.Models;
+using System.Security.Claims;
 
 namespace MyAnimeList.Backend.Services
 {
@@ -9,5 +10,6 @@ namespace MyAnimeList.Backend.Services
         Task<User?> GetUserByEmailAsync(string email);
         Task<User?> GetUserByUsernameAsync(string username);
         string GenerateJwtToken(User user);
+        int? GetUserIdFromClaims(ClaimsPrincipal user);
     }
 }

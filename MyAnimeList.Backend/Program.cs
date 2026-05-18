@@ -24,8 +24,10 @@ builder.Services.AddHttpClient<JikanApiClient>();
 builder.Services.AddScoped<DatabaseInitializationService>();
 builder.Services.AddScoped<IAnimeService, AnimeService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ILibraryService, LibraryService>();
 
 builder.Services.AddScoped<IAnimeRepository, AnimeRepository>();
+builder.Services.AddScoped<ILibraryRepository, LibraryRepository>();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
