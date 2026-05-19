@@ -12,11 +12,13 @@ namespace MyAnimeList.Backend.Controllers
     {
         private readonly ILibraryService _libraryService;
         private readonly IAuthService _authService;
+        private readonly ILogger<LibraryController> _logger;
 
-        public LibraryController(ILibraryService libraryService, IAuthService authService)
+        public LibraryController(ILibraryService libraryService, IAuthService authService, ILogger<LibraryController> logger)
         {
             _libraryService = libraryService;
             _authService = authService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -29,16 +31,21 @@ namespace MyAnimeList.Backend.Controllers
             var userId = _authService.GetUserIdFromClaims(User);
             if (userId == null)
             {
+                _logger.LogWarning("GET /api/library - Unauthorized request: User not authenticated");
                 return Unauthorized(new { message = "User not authenticated" });
             }
+
+            _logger.LogInformation("GET /api/library - UserId: {UserId}, Status filter: {Status}", userId.Value, status ?? "none");
 
             try
             {
                 var library = await _libraryService.GetUserLibraryAsync(userId.Value, status);
+                _logger.LogInformation("GET /api/library - UserId: {UserId}, Returned {Count} items", userId.Value, library.Count);
                 return Ok(library);
             }
             catch (ArgumentException ex)
             {
+                _logger.LogWarning("GET /api/library - UserId: {UserId}, Invalid status filter: {Error}", userId.Value, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
         }
@@ -56,31 +63,40 @@ namespace MyAnimeList.Backend.Controllers
                     .Select(e => e.ErrorMessage)
                     .ToList();
 
+                _logger.LogWarning("POST /api/library - Validation failed: {Errors}", string.Join(", ", errors));
                 return BadRequest(new { message = "Validation failed", errors });
             }
 
             var userId = _authService.GetUserIdFromClaims(User);
             if (userId == null)
             {
+                _logger.LogWarning("POST /api/library - Unauthorized request: User not authenticated");
                 return Unauthorized(new { message = "User not authenticated" });
             }
+
+            _logger.LogInformation("POST /api/library - UserId: {UserId}, AnimeId: {AnimeId}, Status: {Status}, Score: {Score}", 
+                userId.Value, dto.AnimeId, dto.Status, dto.UserScore?.ToString() ?? "none");
 
             try
             {
                 var result = await _libraryService.AddToLibraryAsync(userId.Value, dto);
                 if (result == null)
                 {
+                    _logger.LogError("POST /api/library - UserId: {UserId}, Failed to add AnimeId: {AnimeId}", userId.Value, dto.AnimeId);
                     return BadRequest(new { message = "Failed to add anime to library" });
                 }
 
+                _logger.LogInformation("POST /api/library - UserId: {UserId}, Successfully added AnimeId: {AnimeId}", userId.Value, dto.AnimeId);
                 return CreatedAtAction(nameof(GetLibrary), new { }, result);
             }
             catch (ArgumentException ex)
             {
+                _logger.LogWarning("POST /api/library - UserId: {UserId}, ArgumentException: {Error}", userId.Value, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
+                _logger.LogWarning("POST /api/library - UserId: {UserId}, Conflict: {Error}", userId.Value, ex.Message);
                 return Conflict(new { message = ex.Message });
             }
         }
@@ -98,27 +114,35 @@ namespace MyAnimeList.Backend.Controllers
                     .Select(e => e.ErrorMessage)
                     .ToList();
 
+                _logger.LogWarning("PUT /api/library/{AnimeId} - Validation failed: {Errors}", animeId, string.Join(", ", errors));
                 return BadRequest(new { message = "Validation failed", errors });
             }
 
             var userId = _authService.GetUserIdFromClaims(User);
             if (userId == null)
             {
+                _logger.LogWarning("PUT /api/library/{AnimeId} - Unauthorized request: User not authenticated", animeId);
                 return Unauthorized(new { message = "User not authenticated" });
             }
+
+            _logger.LogInformation("PUT /api/library/{AnimeId} - UserId: {UserId}, Status: {Status}, Score: {Score}, Notes: {HasNotes}", 
+                animeId, userId.Value, dto.Status ?? "unchanged", dto.UserScore?.ToString() ?? "unchanged", dto.Notes != null ? "provided" : "none");
 
             try
             {
                 var result = await _libraryService.UpdateLibraryItemAsync(userId.Value, animeId, dto);
                 if (result == null)
                 {
+                    _logger.LogWarning("PUT /api/library/{AnimeId} - UserId: {UserId}, Anime not found in library", animeId, userId.Value);
                     return NotFound(new { message = $"Anime with ID {animeId} not found in your library" });
                 }
 
+                _logger.LogInformation("PUT /api/library/{AnimeId} - UserId: {UserId}, Successfully updated", animeId, userId.Value);
                 return Ok(result);
             }
             catch (ArgumentException ex)
             {
+                _logger.LogWarning("PUT /api/library/{AnimeId} - UserId: {UserId}, ArgumentException: {Error}", animeId, userId.Value, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
         }
@@ -132,15 +156,20 @@ namespace MyAnimeList.Backend.Controllers
             var userId = _authService.GetUserIdFromClaims(User);
             if (userId == null)
             {
+                _logger.LogWarning("DELETE /api/library/{AnimeId} - Unauthorized request: User not authenticated", animeId);
                 return Unauthorized(new { message = "User not authenticated" });
             }
+
+            _logger.LogInformation("DELETE /api/library/{AnimeId} - UserId: {UserId}", animeId, userId.Value);
 
             var result = await _libraryService.RemoveFromLibraryAsync(userId.Value, animeId);
             if (!result)
             {
+                _logger.LogWarning("DELETE /api/library/{AnimeId} - UserId: {UserId}, Anime not found in library", animeId, userId.Value);
                 return NotFound(new { message = $"Anime with ID {animeId} not found in your library" });
             }
 
+            _logger.LogInformation("DELETE /api/library/{AnimeId} - UserId: {UserId}, Successfully removed", animeId, userId.Value);
             return NoContent();
         }
     }
