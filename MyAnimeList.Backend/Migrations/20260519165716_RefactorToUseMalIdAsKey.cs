@@ -19,6 +19,10 @@ namespace MyAnimeList.Backend.Migrations
                 name: "IX_UserAnime_AnimeId",
                 table: "UserAnime");
 
+            migrationBuilder.DropIndex(
+                name: "IX_UserAnime_UserId_AnimeId",
+                table: "UserAnime");
+
             migrationBuilder.DropTable(
                 name: "Titles");
 
@@ -47,14 +51,9 @@ namespace MyAnimeList.Backend.Migrations
                 oldType: "integer",
                 oldNullable: true);
 
-            // Drop the old AnimeId column
+            // Drop the old AnimeId column (this will also drop any remaining indexes on it)
             migrationBuilder.DropColumn(
                 name: "AnimeId",
-                table: "UserAnime");
-
-            // Drop the old index
-            migrationBuilder.DropIndex(
-                name: "IX_UserAnime_UserId_AnimeId",
                 table: "UserAnime");
 
             // Add unique constraint on Anime.MalId
