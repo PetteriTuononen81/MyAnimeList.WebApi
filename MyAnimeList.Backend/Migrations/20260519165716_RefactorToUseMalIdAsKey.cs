@@ -15,29 +15,55 @@ namespace MyAnimeList.Backend.Migrations
                 name: "FK_UserAnime_Anime_AnimeId",
                 table: "UserAnime");
 
+            migrationBuilder.DropIndex(
+                name: "IX_UserAnime_AnimeId",
+                table: "UserAnime");
+
             migrationBuilder.DropTable(
                 name: "Titles");
 
-            migrationBuilder.RenameColumn(
+            // Add new MalId column to UserAnime (nullable temporarily)
+            migrationBuilder.AddColumn<int>(
+                name: "MalId",
+                table: "UserAnime",
+                type: "integer",
+                nullable: true);
+
+            // Populate MalId from Anime table using the existing AnimeId
+            migrationBuilder.Sql(@"
+                UPDATE ""UserAnime"" ua
+                SET ""MalId"" = a.""MalId""
+                FROM ""Anime"" a
+                WHERE ua.""AnimeId"" = a.""Id""
+            ");
+
+            // Make MalId NOT NULL now that it's populated
+            migrationBuilder.AlterColumn<int>(
+                name: "MalId",
+                table: "UserAnime",
+                type: "integer",
+                nullable: false,
+                oldClrType: typeof(int),
+                oldType: "integer",
+                oldNullable: true);
+
+            // Drop the old AnimeId column
+            migrationBuilder.DropColumn(
                 name: "AnimeId",
-                table: "UserAnime",
-                newName: "MalId");
+                table: "UserAnime");
 
-            migrationBuilder.RenameIndex(
+            // Drop the old index
+            migrationBuilder.DropIndex(
                 name: "IX_UserAnime_UserId_AnimeId",
-                table: "UserAnime",
-                newName: "IX_UserAnime_UserId_MalId");
+                table: "UserAnime");
 
-            migrationBuilder.RenameIndex(
-                name: "IX_UserAnime_AnimeId",
-                table: "UserAnime",
-                newName: "IX_UserAnime_MalId");
-
+            // Add unique constraint on Anime.MalId
             migrationBuilder.AddUniqueConstraint(
                 name: "AK_Anime_MalId",
                 table: "Anime",
                 column: "MalId");
 
+            // Create new AnimeTitles table
             migrationBuilder.CreateTable(
                 name: "AnimeTitles",
                 columns: table => new
@@ -59,11 +85,24 @@ namespace MyAnimeList.Backend.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            // Create indexes
+            migrationBuilder.CreateIndex(
+                name: "IX_UserAnime_MalId",
+                table: "UserAnime",
+                column: "MalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserAnime_UserId_MalId",
+                table: "UserAnime",
+                columns: new[] { "UserId", "MalId" },
+                unique: true);
+
             migrationBuilder.CreateIndex(
                 name: "IX_AnimeTitles_MalId_Type",
                 table: "AnimeTitles",
                 columns: new[] { "MalId", "Type" });
 
+            // Add foreign key constraint
             migrationBuilder.AddForeignKey(
                 name: "FK_UserAnime_Anime_MalId",
                 table: "UserAnime",
@@ -87,21 +126,45 @@ namespace MyAnimeList.Backend.Migrations
                 name: "AK_Anime_MalId",
                 table: "Anime");
 
-            migrationBuilder.RenameColumn(
-                name: "MalId",
-                table: "UserAnime",
-                newName: "AnimeId");
-
-            migrationBuilder.RenameIndex(
-                name: "IX_UserAnime_UserId_MalId",
-                table: "UserAnime",
-                newName: "IX_UserAnime_UserId_AnimeId");
-
-            migrationBuilder.RenameIndex(
+            migrationBuilder.DropIndex(
                 name: "IX_UserAnime_MalId",
-                table: "UserAnime",
-                newName: "IX_UserAnime_AnimeId");
+                table: "UserAnime");
 
+            migrationBuilder.DropIndex(
+                name: "IX_UserAnime_UserId_MalId",
+                table: "UserAnime");
+
+            // Add AnimeId column back (nullable temporarily)
+            migrationBuilder.AddColumn<int>(
+                name: "AnimeId",
+                table: "UserAnime",
+                type: "integer",
+                nullable: true);
+
+            // Restore AnimeId from Anime table using MalId
+            migrationBuilder.Sql(@"
+                UPDATE ""UserAnime"" ua
+                SET ""AnimeId"" = a.""Id""
+                FROM ""Anime"" a
+                WHERE ua.""MalId"" = a.""MalId""
+            ");
+
+            // Make AnimeId NOT NULL
+            migrationBuilder.AlterColumn<int>(
+                name: "AnimeId",
+                table: "UserAnime",
+                type: "integer",
+                nullable: false,
+                oldClrType: typeof(int),
+                oldType: "integer",
+                oldNullable: true);
+
+            // Drop MalId column
+            migrationBuilder.DropColumn(
+                name: "MalId",
+                table: "UserAnime");
+
+            // Recreate old Titles table
             migrationBuilder.CreateTable(
                 name: "Titles",
                 columns: table => new
@@ -123,11 +186,24 @@ namespace MyAnimeList.Backend.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            // Recreate indexes
+            migrationBuilder.CreateIndex(
+                name: "IX_UserAnime_AnimeId",
+                table: "UserAnime",
+                column: "AnimeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserAnime_UserId_AnimeId",
+                table: "UserAnime",
+                columns: new[] { "UserId", "AnimeId" },
+                unique: true);
+
             migrationBuilder.CreateIndex(
                 name: "IX_Titles_AnimeId_Type",
                 table: "Titles",
                 columns: new[] { "AnimeId", "Type" });
 
+            // Add foreign key back
             migrationBuilder.AddForeignKey(
                 name: "FK_UserAnime_Anime_AnimeId",
                 table: "UserAnime",
