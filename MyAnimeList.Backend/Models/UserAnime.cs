@@ -4,7 +4,7 @@ namespace MyAnimeList.Backend.Models
     {
         public int Id { get; set; }
         public int UserId { get; set; }
-        public int AnimeId { get; set; }
+        public int MalId { get; set; }
         public AnimeWatchStatus Status { get; set; }
         public int? UserScore { get; set; }
         public string? Notes { get; set; }

@@ -81,10 +81,21 @@ namespace MyAnimeList.Backend.Services
 
         private Anime ParseAnimeFromJson(JsonElement element)
         {
-            return new Anime
+            var titles = element.GetTitlesArray();
+            var malId = element.GetIntProperty("mal_id");
+
+            var defaultTitle = titles.FirstOrDefault(t => t.Type.Equals("Default", StringComparison.OrdinalIgnoreCase)).Title
+                ?? element.GetStringProperty("title")
+                ?? string.Empty;
+
+            var englishTitle = titles.FirstOrDefault(t => t.Type.Equals("English", StringComparison.OrdinalIgnoreCase)).Title
+                ?? element.GetStringProperty("title_english");
+
+            var anime = new Anime
             {
-                MalId = element.GetIntProperty("mal_id"),
-                Title = element.GetStringProperty("title") ?? string.Empty,
+                MalId = malId,
+                Title = defaultTitle,
+                EnglishTitle = englishTitle,
                 Episodes = element.GetIntProperty("episodes"),
                 Status = element.GetStringProperty("status"),
                 Score = element.GetDoubleProperty("score"),
@@ -96,6 +107,18 @@ namespace MyAnimeList.Backend.Services
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
+
+            foreach (var (type, title) in titles)
+            {
+                anime.Titles.Add(new AnimeTitle
+                {
+                    MalId = malId,
+                    Type = type,
+                    Title = title
+                });
+            }
+
+            return anime;
         }
     }
 

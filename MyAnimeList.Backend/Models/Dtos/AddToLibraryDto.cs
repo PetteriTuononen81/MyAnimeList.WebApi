@@ -5,7 +5,7 @@ namespace MyAnimeList.Backend.Models.Dtos
     public class AddToLibraryDto
     {
         [Required]
-        public int AnimeId { get; set; }
+        public int MalId { get; set; }
 
         [Required]
         public string Status { get; set; } = string.Empty;

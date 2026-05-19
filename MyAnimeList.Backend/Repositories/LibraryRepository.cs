@@ -7,11 +7,11 @@ namespace MyAnimeList.Backend.Repositories
     public interface ILibraryRepository
     {
         Task<List<UserAnime>> GetUserLibraryAsync(int userId, AnimeWatchStatus? status = null);
-        Task<UserAnime?> GetUserAnimeAsync(int userId, int animeId);
+        Task<UserAnime?> GetUserAnimeAsync(int userId, int malId);
         Task<UserAnime> AddToLibraryAsync(UserAnime userAnime);
         Task<UserAnime> UpdateLibraryItemAsync(UserAnime userAnime);
-        Task<bool> RemoveFromLibraryAsync(int userId, int animeId);
-        Task<bool> IsAnimeInLibraryAsync(int userId, int animeId);
+        Task<bool> RemoveFromLibraryAsync(int userId, int malId);
+        Task<bool> IsAnimeInLibraryAsync(int userId, int malId);
     }
 
     public class LibraryRepository : ILibraryRepository
@@ -27,6 +27,7 @@ namespace MyAnimeList.Backend.Repositories
         {
             var query = _context.UserAnime
                 .Include(ua => ua.Anime)
+                    .ThenInclude(a => a.Titles)
                 .Where(ua => ua.UserId == userId);
 
             if (status.HasValue)
@@ -39,11 +40,12 @@ namespace MyAnimeList.Backend.Repositories
                 .ToListAsync();
         }
 
-        public async Task<UserAnime?> GetUserAnimeAsync(int userId, int animeId)
+        public async Task<UserAnime?> GetUserAnimeAsync(int userId, int malId)
         {
             return await _context.UserAnime
                 .Include(ua => ua.Anime)
-                .FirstOrDefaultAsync(ua => ua.UserId == userId && ua.AnimeId == animeId);
+                    .ThenInclude(a => a.Titles)
+                .FirstOrDefaultAsync(ua => ua.UserId == userId && ua.MalId == malId);
         }
 
         public async Task<UserAnime> AddToLibraryAsync(UserAnime userAnime)
@@ -51,10 +53,17 @@ namespace MyAnimeList.Backend.Repositories
             await _context.UserAnime.AddAsync(userAnime);
             await _context.SaveChangesAsync();
 
-            // Load the anime entity for the response
+            // Load the anime entity and its titles for the response
             await _context.Entry(userAnime)
                 .Reference(ua => ua.Anime)
                 .LoadAsync();
+
+            if (userAnime.Anime != null)
+            {
+                await _context.Entry(userAnime.Anime)
+                    .Collection(a => a.Titles)
+                    .LoadAsync();
+            }
 
             return userAnime;
         }
@@ -65,18 +74,25 @@ namespace MyAnimeList.Backend.Repositories
             _context.UserAnime.Update(userAnime);
             await _context.SaveChangesAsync();
 
-            // Ensure anime is loaded
+            // Ensure anime and titles are loaded
             await _context.Entry(userAnime)
                 .Reference(ua => ua.Anime)
                 .LoadAsync();
 
+            if (userAnime.Anime != null)
+            {
+                await _context.Entry(userAnime.Anime)
+                    .Collection(a => a.Titles)
+                    .LoadAsync();
+            }
+
             return userAnime;
         }
 
-        public async Task<bool> RemoveFromLibraryAsync(int userId, int animeId)
+        public async Task<bool> RemoveFromLibraryAsync(int userId, int malId)
         {
             var userAnime = await _context.UserAnime
-                .FirstOrDefaultAsync(ua => ua.UserId == userId && ua.AnimeId == animeId);
+                .FirstOrDefaultAsync(ua => ua.UserId == userId && ua.MalId == malId);
 
             if (userAnime == null)
             {
@@ -88,10 +104,10 @@ namespace MyAnimeList.Backend.Repositories
             return true;
         }
 
-        public async Task<bool> IsAnimeInLibraryAsync(int userId, int animeId)
+        public async Task<bool> IsAnimeInLibraryAsync(int userId, int malId)
         {
             return await _context.UserAnime
-                .AnyAsync(ua => ua.UserId == userId && ua.AnimeId == animeId);
+                .AnyAsync(ua => ua.UserId == userId && ua.MalId == malId);
         }
     }
 }

@@ -17,6 +17,35 @@
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
+        public ICollection<AnimeTitle> Titles { get; set; } = new List<AnimeTitle>();
+
+        public string? GetTitleByType(string type)
+        {
+            return Titles.FirstOrDefault(t => t.Type.Equals(type, StringComparison.OrdinalIgnoreCase))?.Title;
+        }
+
+        public string GetDefaultTitle()
+        {
+            return GetTitleByType("Default") ?? Title;
+        }
+
+        public string? GetEnglishTitleFromCollection()
+        {
+            return GetTitleByType("English") ?? EnglishTitle;
+        }
+
+        public string? GetJapaneseTitle()
+        {
+            return GetTitleByType("Japanese");
+        }
+
+        public List<string> GetSynonymTitles()
+        {
+            return Titles.Where(t => t.Type.Equals("Synonym", StringComparison.OrdinalIgnoreCase))
+                         .Select(t => t.Title)
+                         .ToList();
+        }
+
         public void Update(Anime newAnime)
         {
             Title = newAnime.Title;

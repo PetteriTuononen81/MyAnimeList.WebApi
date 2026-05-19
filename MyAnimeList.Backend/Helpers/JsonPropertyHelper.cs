@@ -135,5 +135,31 @@ namespace MyAnimeList.Backend.Helpers
 
             return current.GetStringProperty(propertyPath[^1]);
         }
+
+        /// <summary>
+        /// Parses the titles array from Jikan API v4 format
+        /// Returns a list of tuples containing (Type, Title)
+        /// </summary>
+        public static List<(string Type, string Title)> GetTitlesArray(this JsonElement element, string propertyName = "titles")
+        {
+            var titles = new List<(string Type, string Title)>();
+
+            if (element.TryGetProperty(propertyName, out var titlesArray) && 
+                titlesArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var titleElement in titlesArray.EnumerateArray())
+                {
+                    var type = titleElement.GetStringProperty("type");
+                    var title = titleElement.GetStringProperty("title");
+
+                    if (!string.IsNullOrEmpty(type) && !string.IsNullOrEmpty(title))
+                    {
+                        titles.Add((type, title));
+                    }
+                }
+            }
+
+            return titles;
+        }
     }
 }

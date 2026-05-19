@@ -6,7 +6,7 @@ namespace MyAnimeList.Backend.Models.Dtos
     {
         public int Id { get; set; }
         public int UserId { get; set; }
-        public int AnimeId { get; set; }
+        public int MalId { get; set; }
         public string Status { get; set; } = string.Empty;
         public int? UserScore { get; set; }
         public string? Notes { get; set; }
@@ -27,5 +27,12 @@ namespace MyAnimeList.Backend.Models.Dtos
         public double? Score { get; set; }
         public string? ImageUrl { get; set; }
         public string? Genre { get; set; }
+        public List<TitleDto>? Titles { get; set; }
+    }
+
+    public class TitleDto
+    {
+        public string Type { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
     }
 }

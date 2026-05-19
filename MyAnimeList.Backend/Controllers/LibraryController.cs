@@ -74,19 +74,19 @@ namespace MyAnimeList.Backend.Controllers
                 return Unauthorized(new { message = "User not authenticated" });
             }
 
-            _logger.LogInformation("POST /api/library - UserId: {UserId}, AnimeId: {AnimeId}, Status: {Status}, Score: {Score}", 
-                userId.Value, dto.AnimeId, dto.Status, dto.UserScore?.ToString() ?? "none");
+            _logger.LogInformation("POST /api/library - UserId: {UserId}, MalId: {MalId}, Status: {Status}, Score: {Score}", 
+                userId.Value, dto.MalId, dto.Status, dto.UserScore?.ToString() ?? "none");
 
             try
             {
                 var result = await _libraryService.AddToLibraryAsync(userId.Value, dto);
                 if (result == null)
                 {
-                    _logger.LogError("POST /api/library - UserId: {UserId}, Failed to add AnimeId: {AnimeId}", userId.Value, dto.AnimeId);
+                    _logger.LogError("POST /api/library - UserId: {UserId}, Failed to add MalId: {MalId}", userId.Value, dto.MalId);
                     return BadRequest(new { message = "Failed to add anime to library" });
                 }
 
-                _logger.LogInformation("POST /api/library - UserId: {UserId}, Successfully added AnimeId: {AnimeId}", userId.Value, dto.AnimeId);
+                _logger.LogInformation("POST /api/library - UserId: {UserId}, Successfully added MalId: {MalId}", userId.Value, dto.MalId);
                 return CreatedAtAction(nameof(GetLibrary), new { }, result);
             }
             catch (ArgumentException ex)
@@ -104,8 +104,8 @@ namespace MyAnimeList.Backend.Controllers
         /// <summary>
         /// Update an anime entry in user's library (status, score, notes)
         /// </summary>
-        [HttpPut("{animeId}")]
-        public async Task<ActionResult<UserAnimeDto>> UpdateLibraryItem(int animeId, [FromBody] UpdateLibraryDto dto)
+        [HttpPut("{malId}")]
+        public async Task<ActionResult<UserAnimeDto>> UpdateLibraryItem(int malId, [FromBody] UpdateLibraryDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -114,35 +114,35 @@ namespace MyAnimeList.Backend.Controllers
                     .Select(e => e.ErrorMessage)
                     .ToList();
 
-                _logger.LogWarning("PUT /api/library/{AnimeId} - Validation failed: {Errors}", animeId, string.Join(", ", errors));
+                _logger.LogWarning("PUT /api/library/{MalId} - Validation failed: {Errors}", malId, string.Join(", ", errors));
                 return BadRequest(new { message = "Validation failed", errors });
             }
 
             var userId = _authService.GetUserIdFromClaims(User);
             if (userId == null)
             {
-                _logger.LogWarning("PUT /api/library/{AnimeId} - Unauthorized request: User not authenticated", animeId);
+                _logger.LogWarning("PUT /api/library/{MalId} - Unauthorized request: User not authenticated", malId);
                 return Unauthorized(new { message = "User not authenticated" });
             }
 
-            _logger.LogInformation("PUT /api/library/{AnimeId} - UserId: {UserId}, Status: {Status}, Score: {Score}, Notes: {HasNotes}", 
-                animeId, userId.Value, dto.Status ?? "unchanged", dto.UserScore?.ToString() ?? "unchanged", dto.Notes != null ? "provided" : "none");
+            _logger.LogInformation("PUT /api/library/{MalId} - UserId: {UserId}, Status: {Status}, Score: {Score}, Notes: {HasNotes}", 
+                malId, userId.Value, dto.Status ?? "unchanged", dto.UserScore?.ToString() ?? "unchanged", dto.Notes != null ? "provided" : "none");
 
             try
             {
-                var result = await _libraryService.UpdateLibraryItemAsync(userId.Value, animeId, dto);
+                var result = await _libraryService.UpdateLibraryItemAsync(userId.Value, malId, dto);
                 if (result == null)
                 {
-                    _logger.LogWarning("PUT /api/library/{AnimeId} - UserId: {UserId}, Anime not found in library", animeId, userId.Value);
-                    return NotFound(new { message = $"Anime with ID {animeId} not found in your library" });
+                    _logger.LogWarning("PUT /api/library/{MalId} - UserId: {UserId}, Anime not found in library", malId, userId.Value);
+                    return NotFound(new { message = $"Anime with MalId {malId} not found in your library" });
                 }
 
-                _logger.LogInformation("PUT /api/library/{AnimeId} - UserId: {UserId}, Successfully updated", animeId, userId.Value);
+                _logger.LogInformation("PUT /api/library/{MalId} - UserId: {UserId}, Successfully updated", malId, userId.Value);
                 return Ok(result);
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning("PUT /api/library/{AnimeId} - UserId: {UserId}, ArgumentException: {Error}", animeId, userId.Value, ex.Message);
+                _logger.LogWarning("PUT /api/library/{MalId} - UserId: {UserId}, ArgumentException: {Error}", malId, userId.Value, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
         }

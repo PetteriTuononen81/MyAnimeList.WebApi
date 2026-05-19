@@ -2,6 +2,7 @@ using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Models.Dtos;
 using MyAnimeList.Backend.Repositories;
 using MyAnimeList.Backend.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace MyAnimeList.Backend.Services
 {
@@ -9,8 +10,8 @@ namespace MyAnimeList.Backend.Services
     {
         Task<List<UserAnimeDto>> GetUserLibraryAsync(int userId, string? statusFilter = null);
         Task<UserAnimeDto?> AddToLibraryAsync(int userId, AddToLibraryDto dto);
-        Task<UserAnimeDto?> UpdateLibraryItemAsync(int userId, int animeId, UpdateLibraryDto dto);
-        Task<bool> RemoveFromLibraryAsync(int userId, int animeId);
+        Task<UserAnimeDto?> UpdateLibraryItemAsync(int userId, int malId, UpdateLibraryDto dto);
+        Task<bool> RemoveFromLibraryAsync(int userId, int malId);
     }
 
     public class LibraryService : ILibraryService
@@ -50,15 +51,15 @@ namespace MyAnimeList.Backend.Services
                 throw new ArgumentException($"Invalid status: {dto.Status}. Valid values are: Watching, Completed, OnGoing, Dropped, PlanToWatch");
             }
 
-            // Check if anime exists
-            var anime = await _context.Anime.FindAsync(dto.AnimeId);
+            // Check if anime exists by MalId
+            var anime = await _context.Anime.FirstOrDefaultAsync(a => a.MalId == dto.MalId);
             if (anime == null)
             {
-                throw new ArgumentException($"Anime with ID {dto.AnimeId} not found");
+                throw new ArgumentException($"Anime with MalId {dto.MalId} not found");
             }
 
             // Check if already in library
-            var existing = await _libraryRepository.IsAnimeInLibraryAsync(userId, dto.AnimeId);
+            var existing = await _libraryRepository.IsAnimeInLibraryAsync(userId, dto.MalId);
             if (existing)
             {
                 throw new InvalidOperationException($"Anime is already in your library");
@@ -67,7 +68,7 @@ namespace MyAnimeList.Backend.Services
             var userAnime = new UserAnime
             {
                 UserId = userId,
-                AnimeId = dto.AnimeId,
+                MalId = dto.MalId,
                 Status = parsedStatus,
                 UserScore = dto.UserScore,
                 Notes = dto.Notes,
@@ -79,9 +80,9 @@ namespace MyAnimeList.Backend.Services
             return MapToDto(added);
         }
 
-        public async Task<UserAnimeDto?> UpdateLibraryItemAsync(int userId, int animeId, UpdateLibraryDto dto)
+        public async Task<UserAnimeDto?> UpdateLibraryItemAsync(int userId, int malId, UpdateLibraryDto dto)
         {
-            var userAnime = await _libraryRepository.GetUserAnimeAsync(userId, animeId);
+            var userAnime = await _libraryRepository.GetUserAnimeAsync(userId, malId);
 
             if (userAnime == null)
             {
@@ -114,9 +115,9 @@ namespace MyAnimeList.Backend.Services
             return MapToDto(updated);
         }
 
-        public async Task<bool> RemoveFromLibraryAsync(int userId, int animeId)
+        public async Task<bool> RemoveFromLibraryAsync(int userId, int malId)
         {
-            return await _libraryRepository.RemoveFromLibraryAsync(userId, animeId);
+            return await _libraryRepository.RemoveFromLibraryAsync(userId, malId);
         }
 
         private UserAnimeDto MapToDto(UserAnime userAnime)
@@ -125,7 +126,7 @@ namespace MyAnimeList.Backend.Services
             {
                 Id = userAnime.Id,
                 UserId = userAnime.UserId,
-                AnimeId = userAnime.AnimeId,
+                MalId = userAnime.MalId,
                 Status = userAnime.Status.ToString(),
                 UserScore = userAnime.UserScore,
                 Notes = userAnime.Notes,
@@ -142,7 +143,12 @@ namespace MyAnimeList.Backend.Services
                     Status = userAnime.Anime.Status,
                     Score = userAnime.Anime.Score,
                     ImageUrl = userAnime.Anime.ImageUrl,
-                    Genre = userAnime.Anime.Genre
+                    Genre = userAnime.Anime.Genre,
+                    Titles = userAnime.Anime.Titles?.Select(t => new TitleDto
+                    {
+                        Type = t.Type,
+                        Title = t.Title
+                    }).ToList()
                 } : null
             };
         }
