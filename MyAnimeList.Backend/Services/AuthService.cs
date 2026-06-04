@@ -1,7 +1,7 @@
-using Microsoft.EntityFrameworkCore;
+using Dapper;
 using Microsoft.IdentityModel.Tokens;
-using MyAnimeList.Backend.Data;
 using MyAnimeList.Backend.Models;
+using Npgsql;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -11,13 +11,14 @@ namespace MyAnimeList.Backend.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly AnimeDbContext _context;
+        private readonly string _connectionString;
         private readonly IConfiguration _configuration;
 
-        public AuthService(AnimeDbContext context, IConfiguration configuration)
+        public AuthService(IConfiguration configuration)
         {
-            _context = context;
             _configuration = configuration;
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("DefaultConnection not found");
         }
 
         public async Task<User?> RegisterAsync(string email, string username, string password)
@@ -38,8 +39,14 @@ namespace MyAnimeList.Backend.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            await using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                INSERT INTO users (email, username, passwordhash, createdat)
+                VALUES (@Email, @Username, @PasswordHash, @CreatedAt)
+                RETURNING id";
+
+            user.Id = await connection.ExecuteScalarAsync<int>(sql, user);
 
             return user;
         }
@@ -64,12 +71,26 @@ namespace MyAnimeList.Backend.Services
 
         public async Task<User?> GetUserByEmailAsync(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            await using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                SELECT id, email, username, passwordhash, createdat
+                FROM users
+                WHERE email = @Email";
+
+            return await connection.QueryFirstOrDefaultAsync<User>(sql, new { Email = email });
         }
 
         public async Task<User?> GetUserByUsernameAsync(string username)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            await using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                SELECT id, email, username, passwordhash, createdat
+                FROM users
+                WHERE username = @Username";
+
+            return await connection.QueryFirstOrDefaultAsync<User>(sql, new { Username = username });
         }
 
         public string GenerateJwtToken(User user)

@@ -3,7 +3,6 @@ using Moq;
 using MyAnimeList.Backend.Controllers;
 using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Services;
-using MyAnimeList.Tests.Fixtures;
 using System.Text.Json;
 using Xunit;
 
@@ -18,13 +17,23 @@ namespace MyAnimeList.Tests.Controllers
             _mockAnimeService = new Mock<IAnimeService>();
         }
 
+        private static List<Anime> GetSampleAnimeData()
+        {
+            return new List<Anime>
+            {
+                new Anime { Id = 1, MalId = 1, Title = "Cowboy Bebop", Score = 8.75, Episodes = 26 },
+                new Anime { Id = 2, MalId = 5, Title = "Fullmetal Alchemist", Score = 8.26, Episodes = 51 },
+                new Anime { Id = 3, MalId = 16498, Title = "Attack on Titan", Score = 8.52, Episodes = 25 }
+            };
+        }
+
         #region GetAllAnime Tests
 
         [Fact]
         public async Task GetAllAnime_WithValidData_ReturnsOkResultWithAnimeList()
         {
             // Arrange
-            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
+            var sampleData = GetSampleAnimeData();
             _mockAnimeService
                 .Setup(x => x.GetAllAnimeAsync())
                 .ReturnsAsync(sampleData);
@@ -46,7 +55,7 @@ namespace MyAnimeList.Tests.Controllers
         public async Task GetAllAnime_WithValidData_ReturnsPaginationData()
         {
             // Arrange
-            var sampleData = AnimeDbContextFixture.GetSampleAnimeData();
+            var sampleData = GetSampleAnimeData();
             _mockAnimeService
                 .Setup(x => x.GetAllAnimeAsync())
                 .ReturnsAsync(sampleData);

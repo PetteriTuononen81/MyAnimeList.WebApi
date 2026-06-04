@@ -148,16 +148,16 @@ namespace MyAnimeList.Tests.Migrations
 
             Assert.True(File.Exists(initialMigration), "001_InitialSchema.sql not found");
 
-            var content = File.ReadAllText(initialMigration).ToUpper();
+            var content = File.ReadAllText(initialMigration).ToLower();
 
-            // Required tables
-            var requiredTables = new[] { "ANIME", "USERS", "USERANIME", "ANIMETITLES" };
+            // Required tables (lowercase - PostgreSQL standard)
+            var requiredTables = new[] { "anime", "users", "useranime", "animetitles" };
 
             foreach (var table in requiredTables)
             {
-                Assert.True(content.Contains("CREATE TABLE"), 
+                Assert.True(content.Contains("create table"), 
                     $"File should contain CREATE TABLE statement");
-                Assert.True(content.Contains($"\"{table}\"", StringComparison.OrdinalIgnoreCase), 
+                Assert.True(content.Contains($"{table}"), 
                     $"File should contain table {table}");
             }
         }
@@ -169,13 +169,13 @@ namespace MyAnimeList.Tests.Migrations
 
             Assert.True(File.Exists(initialMigration));
 
-            var content = File.ReadAllText(initialMigration).ToUpper();
+            var content = File.ReadAllText(initialMigration).ToLower();
 
-            // Should create indexes
-            Assert.True(content.Contains("CREATE INDEX"), 
+            // Should create indexes (lowercase ix_ prefix for PostgreSQL)
+            Assert.True(content.Contains("create index"), 
                 "File should contain CREATE INDEX statements");
-            Assert.True(content.Contains("IX_"), 
-                "Indexes should follow IX_ naming convention");
+            Assert.True(content.Contains("ix_"), 
+                "Indexes should follow ix_ naming convention (lowercase)");
         }
 
         [Fact]
@@ -185,12 +185,12 @@ namespace MyAnimeList.Tests.Migrations
 
             Assert.True(File.Exists(initialMigration));
 
-            var content = File.ReadAllText(initialMigration).ToUpper();
+            var content = File.ReadAllText(initialMigration).ToLower();
 
             // Should create foreign keys
-            Assert.True(content.Contains("FOREIGN KEY"), 
+            Assert.True(content.Contains("foreign key"), 
                 "File should contain FOREIGN KEY constraints");
-            Assert.True(content.Contains("REFERENCES"), 
+            Assert.True(content.Contains("references"), 
                 "File should contain REFERENCES clauses");
         }
 

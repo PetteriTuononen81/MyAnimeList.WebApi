@@ -1,74 +1,86 @@
 -- Migration: 001_InitialSchema
 -- Description: Creates initial database schema with Anime, Users, and UserAnime tables
 -- Date: 2026-05-19
+-- Note: PostgreSQL converts unquoted identifiers to lowercase automatically.
+--       We use lowercase for clean SQL. See Database/POSTGRESQL_NAMING.md for details.
 
 -- Create Anime table
-CREATE TABLE IF NOT EXISTS "Anime" (
-    "Id" SERIAL PRIMARY KEY,
-    "MalId" INTEGER NOT NULL UNIQUE,
-    "Title" TEXT NOT NULL,
-    "EnglishTitle" TEXT,
-    "Synopsis" TEXT,
-    "Episodes" INTEGER NOT NULL DEFAULT 0,
-    "Status" TEXT,
-    "AiredFrom" TIMESTAMP,
-    "AiredTo" TIMESTAMP,
-    "Score" DOUBLE PRECISION,
-    "ImageUrl" TEXT,
-    "Genre" TEXT,
-    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "UpdatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS anime (
+    id SERIAL PRIMARY KEY,
+    malid INTEGER NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    englishtitle TEXT,
+    japanesetitle TEXT,
+    synopsis TEXT,
+    type TEXT,
+    episodes INTEGER NOT NULL DEFAULT 0,
+    status TEXT,
+    score DOUBLE PRECISION,
+    popularity INTEGER,
+    rank INTEGER,
+    startdate DATE,
+    enddate DATE,
+    imageurl TEXT,
+    genre TEXT,
+    airedfrom TIMESTAMP,
+    airedto TIMESTAMP,
+    createdat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updatedat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS "IX_Anime_MalId" ON "Anime" ("MalId");
+CREATE INDEX IF NOT EXISTS ix_anime_malid ON anime (malid);
 
 -- Create Users table
-CREATE TABLE IF NOT EXISTS "Users" (
-    "Id" SERIAL PRIMARY KEY,
-    "Username" TEXT NOT NULL UNIQUE,
-    "Email" TEXT NOT NULL UNIQUE,
-    "PasswordHash" TEXT NOT NULL,
-    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    passwordhash TEXT NOT NULL,
+    createdat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS "IX_Users_Email" ON "Users" ("Email");
-CREATE INDEX IF NOT EXISTS "IX_Users_Username" ON "Users" ("Username");
+CREATE INDEX IF NOT EXISTS ix_users_email ON users (email);
+CREATE INDEX IF NOT EXISTS ix_users_username ON users (username);
 
 -- Create UserAnime table (using MalId from the start)
-CREATE TABLE IF NOT EXISTS "UserAnime" (
-    "Id" SERIAL PRIMARY KEY,
-    "UserId" INTEGER NOT NULL,
-    "MalId" INTEGER NOT NULL,
-    "Status" INTEGER NOT NULL,
-    "UserScore" INTEGER,
-    "Notes" TEXT,
-    "DateAdded" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "DateUpdated" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "FK_UserAnime_Users_UserId" FOREIGN KEY ("UserId") 
-        REFERENCES "Users" ("Id") ON DELETE CASCADE,
-    CONSTRAINT "FK_UserAnime_Anime_MalId" FOREIGN KEY ("MalId") 
-        REFERENCES "Anime" ("MalId") ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS useranime (
+    id SERIAL PRIMARY KEY,
+    userid INTEGER NOT NULL,
+    malid INTEGER NOT NULL,
+    status INTEGER NOT NULL,
+    score DOUBLE PRECISION,
+    userscore INTEGER,
+    episodeswatched INTEGER,
+    startdate DATE,
+    finishdate DATE,
+    notes TEXT,
+    dateadded TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    dateupdated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_useranime_users_userid FOREIGN KEY (userid) 
+        REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_useranime_anime_malid FOREIGN KEY (malid) 
+        REFERENCES anime (malid) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS "IX_UserAnime_UserId" ON "UserAnime" ("UserId");
-CREATE INDEX IF NOT EXISTS "IX_UserAnime_MalId" ON "UserAnime" ("MalId");
-CREATE UNIQUE INDEX IF NOT EXISTS "IX_UserAnime_UserId_MalId" ON "UserAnime" ("UserId", "MalId");
+CREATE INDEX IF NOT EXISTS ix_useranime_userid ON useranime (userid);
+CREATE INDEX IF NOT EXISTS ix_useranime_malid ON useranime (malid);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_useranime_userid_malid ON useranime (userid, malid);
 
 -- Create AnimeTitles table
-CREATE TABLE IF NOT EXISTS "AnimeTitles" (
-    "Id" SERIAL PRIMARY KEY,
-    "MalId" INTEGER NOT NULL,
-    "Type" TEXT NOT NULL,
-    "Title" TEXT NOT NULL,
-    CONSTRAINT "FK_AnimeTitles_Anime_MalId" FOREIGN KEY ("MalId") 
-        REFERENCES "Anime" ("MalId") ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS animetitles (
+    id SERIAL PRIMARY KEY,
+    malid INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    CONSTRAINT fk_animetitles_anime_malid FOREIGN KEY (malid) 
+        REFERENCES anime (malid) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS "IX_AnimeTitles_MalId_Type" ON "AnimeTitles" ("MalId", "Type");
+CREATE INDEX IF NOT EXISTS ix_animetitles_malid_type ON animetitles (malid, type);
 
 -- Create migration tracking table
-CREATE TABLE IF NOT EXISTS "__SqlMigrations" (
-    "Id" SERIAL PRIMARY KEY,
-    "MigrationName" TEXT NOT NULL UNIQUE,
-    "AppliedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS sqlmigrations (
+    id SERIAL PRIMARY KEY,
+    migrationname TEXT NOT NULL UNIQUE,
+    appliedat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

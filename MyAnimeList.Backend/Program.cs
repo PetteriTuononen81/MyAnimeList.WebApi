@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using MyAnimeList.Backend.Data;
 using MyAnimeList.Backend.Repositories;
 using MyAnimeList.Backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -12,23 +10,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-// Add DbContext
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<AnimeDbContext>(options =>
-    options.UseNpgsql(connectionString));
-
 // Add HTTP Client for Jikan API (for cron job sync only)
 builder.Services.AddHttpClient<JikanApiClient>();
 
 // Add SQL migration service (replaces EF migrations)
 builder.Services.AddScoped<ISqlMigrationService, SqlMigrationService>();
 
-// Add database initialization service (kept for compatibility, but now uses SQL migrations)
-builder.Services.AddScoped<DatabaseInitializationService>();
+// Add services (now using Dapper with direct SQL queries)
 builder.Services.AddScoped<IAnimeService, AnimeService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
 
+// Add repositories (now using Dapper with direct SQL queries)
 builder.Services.AddScoped<IAnimeRepository, AnimeRepository>();
 builder.Services.AddScoped<ILibraryRepository, LibraryRepository>();
 

@@ -23,4 +23,8 @@
 		<ProjectReference Include="..\MyAnimeList.Backend\MyAnimeList.Backend.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Fixtures\" />
+	</ItemGroup>
+
 </Project>

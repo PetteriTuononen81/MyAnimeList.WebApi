@@ -85,10 +85,10 @@ namespace MyAnimeList.Backend.Services
         private async Task EnsureMigrationTableExistsAsync(NpgsqlConnection connection)
         {
             var sql = @"
-                CREATE TABLE IF NOT EXISTS ""__SqlMigrations"" (
-                    ""Id"" SERIAL PRIMARY KEY,
-                    ""MigrationName"" TEXT NOT NULL UNIQUE,
-                    ""AppliedAt"" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                CREATE TABLE IF NOT EXISTS sqlmigrations (
+                    id SERIAL PRIMARY KEY,
+                    migrationname TEXT NOT NULL UNIQUE,
+                    appliedat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );";
 
             await using var command = new NpgsqlCommand(sql, connection);
@@ -97,7 +97,7 @@ namespace MyAnimeList.Backend.Services
 
         private async Task<bool> IsMigrationAppliedAsync(NpgsqlConnection connection, string migrationName)
         {
-            var sql = @"SELECT COUNT(*) FROM ""__SqlMigrations"" WHERE ""MigrationName"" = @MigrationName";
+            var sql = "SELECT COUNT(*) FROM sqlmigrations WHERE migrationname = @MigrationName";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("MigrationName", migrationName);
@@ -108,7 +108,7 @@ namespace MyAnimeList.Backend.Services
 
         private async Task RecordMigrationAsync(NpgsqlConnection connection, NpgsqlTransaction transaction, string migrationName)
         {
-            var sql = @"INSERT INTO ""__SqlMigrations"" (""MigrationName"", ""AppliedAt"") VALUES (@MigrationName, @AppliedAt)";
+            var sql = "INSERT INTO sqlmigrations (migrationname, appliedat) VALUES (@MigrationName, @AppliedAt)";
 
             await using var command = new NpgsqlCommand(sql, connection, transaction);
             command.Parameters.AddWithValue("MigrationName", migrationName);

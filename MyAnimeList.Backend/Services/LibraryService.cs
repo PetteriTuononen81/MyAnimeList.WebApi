@@ -1,8 +1,8 @@
+using Dapper;
 using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Models.Dtos;
 using MyAnimeList.Backend.Repositories;
-using MyAnimeList.Backend.Data;
-using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace MyAnimeList.Backend.Services
 {
@@ -17,12 +17,12 @@ namespace MyAnimeList.Backend.Services
     public class LibraryService : ILibraryService
     {
         private readonly ILibraryRepository _libraryRepository;
-        private readonly AnimeDbContext _context;
+        private readonly IAnimeRepository _animeRepository;
 
-        public LibraryService(ILibraryRepository libraryRepository, AnimeDbContext context)
+        public LibraryService(ILibraryRepository libraryRepository, IAnimeRepository animeRepository)
         {
             _libraryRepository = libraryRepository;
-            _context = context;
+            _animeRepository = animeRepository;
         }
 
         public async Task<List<UserAnimeDto>> GetUserLibraryAsync(int userId, string? statusFilter = null)
@@ -52,7 +52,7 @@ namespace MyAnimeList.Backend.Services
             }
 
             // Check if anime exists by MalId
-            var anime = await _context.Anime.FirstOrDefaultAsync(a => a.MalId == dto.MalId);
+            var anime = await _animeRepository.GetByMalIdAsync(dto.MalId);
             if (anime == null)
             {
                 throw new ArgumentException($"Anime with MalId {dto.MalId} not found");

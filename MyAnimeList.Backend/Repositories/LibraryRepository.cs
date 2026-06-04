@@ -1,6 +1,7 @@
-using Microsoft.EntityFrameworkCore;
-using MyAnimeList.Backend.Data;
+using Dapper;
+using Microsoft.Extensions.Configuration;
 using MyAnimeList.Backend.Models;
+using Npgsql;
 
 namespace MyAnimeList.Backend.Repositories
 {
@@ -16,98 +17,177 @@ namespace MyAnimeList.Backend.Repositories
 
     public class LibraryRepository : ILibraryRepository
     {
-        private readonly AnimeDbContext _context;
+        private readonly string _connectionString;
 
-        public LibraryRepository(AnimeDbContext context)
+        public LibraryRepository(IConfiguration configuration)
         {
-            _context = context;
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("DefaultConnection not found");
         }
 
         public async Task<List<UserAnime>> GetUserLibraryAsync(int userId, AnimeWatchStatus? status = null)
         {
-            var query = _context.UserAnime
-                .Include(ua => ua.Anime)
-                    .ThenInclude(a => a.Titles)
-                .Where(ua => ua.UserId == userId);
+            await using var connection = new NpgsqlConnection(_connectionString);
 
-            if (status.HasValue)
-            {
-                query = query.Where(ua => ua.Status == status.Value);
-            }
+            var sql = @"
+                SELECT 
+                    ua.""Id"", ua.""UserId"", ua.""MalId"", ua.""Status"", ua.""Score"", 
+                    ua.""EpisodesWatched"", ua.""StartDate"", ua.""FinishDate"", 
+                    ua.""DateAdded"", ua.""DateUpdated"",
+                    a.""Id"" AS ""AnimeId"", a.""MalId"" AS ""AnimeMalId"", a.""Title"", a.""EnglishTitle"", 
+                    a.""JapaneseTitle"", a.""ImageUrl"", a.""Synopsis"", a.""Type"", 
+                    a.""Episodes"", a.""Status"" AS ""AnimeStatus"", a.""Score"" AS ""AnimeScore"", 
+                    a.""Popularity"", a.""Rank"", a.""StartDate"" AS ""AnimeStartDate"", 
+                    a.""EndDate"" AS ""AnimeEndDate"",
+                    t.""Id"" AS ""TitleId"", t.""MalId"" AS ""TitleMalId"", t.""Type"" AS ""TitleType"", 
+                    t.""Title"" AS ""TitleText""
+                FROM ""UserAnime"" ua
+                INNER JOIN ""Anime"" a ON ua.""MalId"" = a.""MalId""
+                LEFT JOIN ""AnimeTitles"" t ON a.""MalId"" = t.""MalId""
+                WHERE ua.""UserId"" = @UserId" +
+                (status.HasValue ? @" AND ua.""Status"" = @Status" : "") +
+                @" ORDER BY ua.""DateUpdated"" DESC";
 
-            return await query
-                .OrderByDescending(ua => ua.DateUpdated)
-                .ToListAsync();
+            var userAnimeDict = new Dictionary<int, UserAnime>();
+
+            var result = await connection.QueryAsync<UserAnime, Anime, AnimeTitle, UserAnime>(
+                sql,
+                (userAnime, anime, title) =>
+                {
+                    if (!userAnimeDict.TryGetValue(userAnime.Id, out var userAnimeEntry))
+                    {
+                        userAnimeEntry = userAnime;
+                        userAnimeEntry.Anime = anime;
+                        anime.Titles = new List<AnimeTitle>();
+                        userAnimeDict.Add(userAnime.Id, userAnimeEntry);
+                    }
+
+                    if (title != null)
+                    {
+                        userAnimeEntry.Anime!.Titles.Add(title);
+                    }
+
+                    return userAnimeEntry;
+                },
+                new { UserId = userId, Status = status },
+                splitOn: "AnimeId,TitleId"
+            );
+
+            return userAnimeDict.Values.ToList();
         }
 
         public async Task<UserAnime?> GetUserAnimeAsync(int userId, int malId)
         {
-            return await _context.UserAnime
-                .Include(ua => ua.Anime)
-                    .ThenInclude(a => a.Titles)
-                .FirstOrDefaultAsync(ua => ua.UserId == userId && ua.MalId == malId);
+            await using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                SELECT 
+                    ua.""Id"", ua.""UserId"", ua.""MalId"", ua.""Status"", ua.""Score"", 
+                    ua.""EpisodesWatched"", ua.""StartDate"", ua.""FinishDate"", 
+                    ua.""DateAdded"", ua.""DateUpdated"",
+                    a.""Id"" AS ""AnimeId"", a.""MalId"" AS ""AnimeMalId"", a.""Title"", a.""EnglishTitle"", 
+                    a.""JapaneseTitle"", a.""ImageUrl"", a.""Synopsis"", a.""Type"", 
+                    a.""Episodes"", a.""Status"" AS ""AnimeStatus"", a.""Score"" AS ""AnimeScore"", 
+                    a.""Popularity"", a.""Rank"", a.""StartDate"" AS ""AnimeStartDate"", 
+                    a.""EndDate"" AS ""AnimeEndDate"",
+                    t.""Id"" AS ""TitleId"", t.""MalId"" AS ""TitleMalId"", t.""Type"" AS ""TitleType"", 
+                    t.""Title"" AS ""TitleText""
+                FROM ""UserAnime"" ua
+                INNER JOIN ""Anime"" a ON ua.""MalId"" = a.""MalId""
+                LEFT JOIN ""AnimeTitles"" t ON a.""MalId"" = t.""MalId""
+                WHERE ua.""UserId"" = @UserId AND ua.""MalId"" = @MalId";
+
+            UserAnime? userAnime = null;
+
+            await connection.QueryAsync<UserAnime, Anime, AnimeTitle, UserAnime>(
+                sql,
+                (ua, anime, title) =>
+                {
+                    if (userAnime == null)
+                    {
+                        userAnime = ua;
+                        userAnime.Anime = anime;
+                        anime.Titles = new List<AnimeTitle>();
+                    }
+
+                    if (title != null)
+                    {
+                        userAnime.Anime!.Titles.Add(title);
+                    }
+
+                    return userAnime;
+                },
+                new { UserId = userId, MalId = malId },
+                splitOn: "AnimeId,TitleId"
+            );
+
+            return userAnime;
         }
 
         public async Task<UserAnime> AddToLibraryAsync(UserAnime userAnime)
         {
-            await _context.UserAnime.AddAsync(userAnime);
-            await _context.SaveChangesAsync();
+            await using var connection = new NpgsqlConnection(_connectionString);
 
-            // Load the anime entity and its titles for the response
-            await _context.Entry(userAnime)
-                .Reference(ua => ua.Anime)
-                .LoadAsync();
+            var sql = @"
+                INSERT INTO useranime 
+                (userid, malid, status, score, episodeswatched, 
+                 startdate, finishdate, dateadded, dateupdated)
+                VALUES 
+                (@UserId, @MalId, @Status, @Score, @EpisodesWatched, 
+                 @StartDate, @FinishDate, @DateAdded, @DateUpdated)
+                RETURNING id";
 
-            if (userAnime.Anime != null)
-            {
-                await _context.Entry(userAnime.Anime)
-                    .Collection(a => a.Titles)
-                    .LoadAsync();
-            }
+            userAnime.Id = await connection.ExecuteScalarAsync<int>(sql, userAnime);
 
-            return userAnime;
+            // Load the anime and titles for response
+            return (await GetUserAnimeAsync(userAnime.UserId, userAnime.MalId))!;
         }
 
         public async Task<UserAnime> UpdateLibraryItemAsync(UserAnime userAnime)
         {
+            await using var connection = new NpgsqlConnection(_connectionString);
+
             userAnime.DateUpdated = DateTime.UtcNow;
-            _context.UserAnime.Update(userAnime);
-            await _context.SaveChangesAsync();
 
-            // Ensure anime and titles are loaded
-            await _context.Entry(userAnime)
-                .Reference(ua => ua.Anime)
-                .LoadAsync();
+            var sql = @"
+                UPDATE useranime
+                SET status = @Status, 
+                    score = @Score, 
+                    episodeswatched = @EpisodesWatched,
+                    startdate = @StartDate, 
+                    finishdate = @FinishDate, 
+                    dateupdated = @DateUpdated
+                WHERE userid = @UserId AND malid = @MalId";
 
-            if (userAnime.Anime != null)
-            {
-                await _context.Entry(userAnime.Anime)
-                    .Collection(a => a.Titles)
-                    .LoadAsync();
-            }
+            await connection.ExecuteAsync(sql, userAnime);
 
-            return userAnime;
+            // Load the updated anime and titles for response
+            return (await GetUserAnimeAsync(userAnime.UserId, userAnime.MalId))!;
         }
 
         public async Task<bool> RemoveFromLibraryAsync(int userId, int malId)
         {
-            var userAnime = await _context.UserAnime
-                .FirstOrDefaultAsync(ua => ua.UserId == userId && ua.MalId == malId);
+            await using var connection = new NpgsqlConnection(_connectionString);
 
-            if (userAnime == null)
-            {
-                return false;
-            }
+            var sql = @"
+                DELETE FROM useranime
+                WHERE userid = @UserId AND malid = @MalId";
 
-            _context.UserAnime.Remove(userAnime);
-            await _context.SaveChangesAsync();
-            return true;
+            var rowsAffected = await connection.ExecuteAsync(sql, new { UserId = userId, MalId = malId });
+            return rowsAffected > 0;
         }
 
         public async Task<bool> IsAnimeInLibraryAsync(int userId, int malId)
         {
-            return await _context.UserAnime
-                .AnyAsync(ua => ua.UserId == userId && ua.MalId == malId);
+            await using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                SELECT COUNT(1) 
+                FROM useranime 
+                WHERE userid = @UserId AND malid = @MalId";
+
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { UserId = userId, MalId = malId });
+            return count > 0;
         }
     }
 }

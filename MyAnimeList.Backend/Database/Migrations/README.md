@@ -2,10 +2,20 @@
 
 This directory contains pure SQL migration files for the MyAnimeList database.
 
+## ⚠️ Important: PostgreSQL Naming Convention
+
+**PostgreSQL converts all unquoted identifiers to lowercase automatically!**
+
+See [../POSTGRESQL_NAMING.md](../POSTGRESQL_NAMING.md) for detailed explanation.
+
+**TL;DR:** We use lowercase table/column names (e.g., `useranime`, `malid`) for clean SQL without quotes. Dapper automatically maps to PascalCase C# properties (e.g., `UserAnime.MalId`).
+
+---
+
 ## How It Works
 
 1. **Automatic Application**: Migrations run automatically on application startup
-2. **Tracking**: Applied migrations are tracked in the `__SqlMigrations` table
+2. **Tracking**: Applied migrations are tracked in the `sqlmigrations` table
 3. **Order**: Migrations are applied in alphabetical/numerical order
 4. **Idempotent**: Migrations are only applied once (tracked by filename)
 
@@ -36,8 +46,8 @@ Create `Database/Migrations/002_AddAnimeRatingColumn.sql`:
 -- Description: Adds a rating column to the Anime table
 -- Date: 2026-05-19
 
-ALTER TABLE "Anime" ADD COLUMN IF NOT EXISTS "Rating" TEXT;
-CREATE INDEX IF NOT EXISTS "IX_Anime_Rating" ON "Anime" ("Rating");
+ALTER TABLE anime ADD COLUMN IF NOT EXISTS rating TEXT;
+CREATE INDEX IF NOT EXISTS ix_anime_rating ON anime (rating);
 ```
 
 ### Example: Creating a new table
@@ -49,22 +59,22 @@ Create `Database/Migrations/003_CreateReviewsTable.sql`:
 -- Description: Creates table for user anime reviews
 -- Date: 2026-05-19
 
-CREATE TABLE IF NOT EXISTS "Reviews" (
-    "Id" SERIAL PRIMARY KEY,
-    "UserId" INTEGER NOT NULL,
-    "MalId" INTEGER NOT NULL,
-    "ReviewText" TEXT NOT NULL,
-    "Rating" INTEGER NOT NULL,
-    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "FK_Reviews_Users_UserId" FOREIGN KEY ("UserId") 
-        REFERENCES "Users" ("Id") ON DELETE CASCADE,
-    CONSTRAINT "FK_Reviews_Anime_MalId" FOREIGN KEY ("MalId") 
-        REFERENCES "Anime" ("MalId") ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS reviews (
+    id SERIAL PRIMARY KEY,
+    userid INTEGER NOT NULL,
+    malid INTEGER NOT NULL,
+    reviewtext TEXT NOT NULL,
+    rating INTEGER NOT NULL,
+    createdat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_reviews_users_userid FOREIGN KEY (userid) 
+        REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_reviews_anime_malid FOREIGN KEY (malid) 
+        REFERENCES anime (malid) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS "IX_Reviews_UserId" ON "Reviews" ("UserId");
-CREATE INDEX IF NOT EXISTS "IX_Reviews_MalId" ON "Reviews" ("MalId");
-CREATE UNIQUE INDEX IF NOT EXISTS "IX_Reviews_UserId_MalId" ON "Reviews" ("UserId", "MalId");
+CREATE INDEX IF NOT EXISTS ix_reviews_userid ON reviews (userid);
+CREATE INDEX IF NOT EXISTS ix_reviews_malid ON reviews (malid);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_reviews_userid_malid ON reviews (userid, malid);
 ```
 
 ## Best Practices
