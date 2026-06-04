@@ -63,11 +63,11 @@ namespace MyAnimeList.Backend.Database.Repositories
 
             anime.Id = await connection.ExecuteScalarAsync<int>(
                 @"INSERT INTO anime 
-                (malid, title, englishtitle, japanesetitle, imageurl, 
+                (malid, title, englishtitle, imageurl, 
                  synopsis, type, episodes, status, score, 
                  popularity, rank, startdate, enddate)
                 VALUES 
-                (@MalId, @Title, @EnglishTitle, @JapaneseTitle, @ImageUrl, 
+                (@MalId, @Title, @EnglishTitle, @ImageUrl, 
                  @Synopsis, @Type, @Episodes, @Status, @Score, 
                  @Popularity, @Rank, @StartDate, @EndDate)
                 RETURNING id",
@@ -111,7 +111,6 @@ namespace MyAnimeList.Backend.Database.Repositories
                 @"UPDATE anime
                 SET title = @Title,
                     englishtitle = @EnglishTitle,
-                    japanesetitle = @JapaneseTitle,
                     imageurl = @ImageUrl,
                     synopsis = @Synopsis,
                     type = @Type,

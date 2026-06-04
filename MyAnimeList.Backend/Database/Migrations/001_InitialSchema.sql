@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS anime (
     malid INTEGER NOT NULL UNIQUE,
     title TEXT NOT NULL,
     englishtitle TEXT,
-    japanesetitle TEXT,
     synopsis TEXT,
     type TEXT,
     episodes INTEGER NOT NULL DEFAULT 0,

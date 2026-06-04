@@ -34,11 +34,6 @@
             return GetTitleByType("English") ?? EnglishTitle;
         }
 
-        public string? GetJapaneseTitle()
-        {
-            return GetTitleByType("Japanese");
-        }
-
         public List<string> GetSynonymTitles()
         {
             return Titles.Where(t => t.Type.Equals("Synonym", StringComparison.OrdinalIgnoreCase))
