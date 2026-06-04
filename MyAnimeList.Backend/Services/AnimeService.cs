@@ -88,7 +88,6 @@ namespace MyAnimeList.Backend.Services
             {
                 _logger.LogInformation("Starting anime data sync from Jikan API...");
 
-                var allExistingAnime = await _animeRepository.GetAllAsync();
                 int totalInsertCount = 0;
                 int totalUpdateCount = 0;
                 int currentPage = 1;
@@ -125,18 +124,14 @@ namespace MyAnimeList.Backend.Services
                     // Process each anime
                     foreach (var newAnime in response.Data)
                     {
-                        var existingAnime = allExistingAnime.FirstOrDefault(a => a.MalId == newAnime.MalId);
-
-                        if (existingAnime != null)
+                        if (await _animeRepository.ExistsAsync(newAnime.MalId))
                         {
-                            existingAnime.Update(newAnime);
-                            await _animeRepository.UpdateAsync(existingAnime);
+                            await _animeRepository.UpdateAsync(newAnime);
                             totalUpdateCount++;
                         }
                         else
                         {
                             await _animeRepository.AddAsync(newAnime);
-                            allExistingAnime.Add(newAnime);
                             totalInsertCount++;
                         }
                     }

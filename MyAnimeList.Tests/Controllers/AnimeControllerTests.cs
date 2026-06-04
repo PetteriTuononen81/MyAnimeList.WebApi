@@ -1,31 +1,26 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
 using MyAnimeList.Backend.Controllers;
 using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Services;
+using MyAnimeList.Tests.Fixtures;
 using System.Text.Json;
 using Xunit;
 
 namespace MyAnimeList.Tests.Controllers
 {
-    public class AnimeControllerTests
+    public class AnimeControllerTests : IClassFixture<AnimeControllerFixture>
     {
-        private readonly Mock<IAnimeService> _mockAnimeService;
+        private readonly AnimeControllerFixture _fixture;
+        private Mock<IAnimeService> MockAnimeService => _fixture.MockAnimeService;
 
-        public AnimeControllerTests()
+        public AnimeControllerTests(AnimeControllerFixture fixture)
         {
-            _mockAnimeService = new Mock<IAnimeService>();
+            _fixture = fixture;
+            _fixture.ResetMocks(); // Reset before each test
         }
 
-        private static List<Anime> GetSampleAnimeData()
-        {
-            return new List<Anime>
-            {
-                new Anime { Id = 1, MalId = 1, Title = "Cowboy Bebop", Score = 8.75, Episodes = 26 },
-                new Anime { Id = 2, MalId = 5, Title = "Fullmetal Alchemist", Score = 8.26, Episodes = 51 },
-                new Anime { Id = 3, MalId = 16498, Title = "Attack on Titan", Score = 8.52, Episodes = 25 }
-            };
-        }
+        private static List<Anime> GetSampleAnimeData() => AnimeControllerFixture.GetSampleAnimeData();
 
         #region GetAllAnime Tests
 
@@ -34,11 +29,11 @@ namespace MyAnimeList.Tests.Controllers
         {
             // Arrange
             var sampleData = GetSampleAnimeData();
-            _mockAnimeService
+            MockAnimeService
                 .Setup(x => x.GetAllAnimeAsync())
                 .ReturnsAsync(sampleData);
 
-            var controller = new AnimeController(_mockAnimeService.Object);
+            var controller = new AnimeController(MockAnimeService.Object);
 
             // Act
             var result = await controller.GetAllAnime();
@@ -56,11 +51,11 @@ namespace MyAnimeList.Tests.Controllers
         {
             // Arrange
             var sampleData = GetSampleAnimeData();
-            _mockAnimeService
+            MockAnimeService
                 .Setup(x => x.GetAllAnimeAsync())
                 .ReturnsAsync(sampleData);
 
-            var controller = new AnimeController(_mockAnimeService.Object);
+            var controller = new AnimeController(MockAnimeService.Object);
 
             // Act
             var result = await controller.GetAllAnime(page: 1, pageSize: 20);
@@ -78,11 +73,11 @@ namespace MyAnimeList.Tests.Controllers
         public async Task GetAllAnime_WithEmptyDatabase_ReturnsEmptyList()
         {
             // Arrange
-            _mockAnimeService
+            MockAnimeService
                 .Setup(x => x.GetAllAnimeAsync())
                 .ReturnsAsync(new List<Anime>());
 
-            var controller = new AnimeController(_mockAnimeService.Object);
+            var controller = new AnimeController(MockAnimeService.Object);
 
             // Act
             var result = await controller.GetAllAnime();
@@ -98,17 +93,17 @@ namespace MyAnimeList.Tests.Controllers
         public async Task GetAllAnime_CallsServiceMethod()
         {
             // Arrange
-            _mockAnimeService
+            MockAnimeService
                 .Setup(x => x.GetAllAnimeAsync())
                 .ReturnsAsync(new List<Anime>());
 
-            var controller = new AnimeController(_mockAnimeService.Object);
+            var controller = new AnimeController(MockAnimeService.Object);
 
             // Act
             await controller.GetAllAnime();
 
             // Assert
-            _mockAnimeService.Verify(x => x.GetAllAnimeAsync(), Times.Once);
+            MockAnimeService.Verify(x => x.GetAllAnimeAsync(), Times.Once);
         }
 
         #endregion
@@ -120,11 +115,11 @@ namespace MyAnimeList.Tests.Controllers
         {
             // Arrange
             const int expectedCount = 3;
-            _mockAnimeService
+            MockAnimeService
                 .Setup(x => x.SyncAnimeDataAsync())
                 .ReturnsAsync(expectedCount);
 
-            var controller = new AnimeController(_mockAnimeService.Object);
+            var controller = new AnimeController(MockAnimeService.Object);
 
             // Act
             var result = await controller.SyncAnimeData();
@@ -148,11 +143,11 @@ namespace MyAnimeList.Tests.Controllers
         public async Task SyncAnimeData_WithZeroResults_ReturnsOkWithZeroCount()
         {
             // Arrange
-            _mockAnimeService
+            MockAnimeService
                 .Setup(x => x.SyncAnimeDataAsync())
                 .ReturnsAsync(0);
 
-            var controller = new AnimeController(_mockAnimeService.Object);
+            var controller = new AnimeController(MockAnimeService.Object);
 
             // Act
             var result = await controller.SyncAnimeData();
@@ -172,11 +167,11 @@ namespace MyAnimeList.Tests.Controllers
         public async Task SyncAnimeData_WhenServiceThrowsException_PropagatesException()
         {
             // Arrange
-            _mockAnimeService
+            MockAnimeService
                 .Setup(x => x.SyncAnimeDataAsync())
                 .ThrowsAsync(new HttpRequestException("API Error"));
 
-            var controller = new AnimeController(_mockAnimeService.Object);
+            var controller = new AnimeController(MockAnimeService.Object);
 
             // Act & Assert
             await Assert.ThrowsAsync<HttpRequestException>(() => controller.SyncAnimeData());
@@ -186,17 +181,17 @@ namespace MyAnimeList.Tests.Controllers
         public async Task SyncAnimeData_CallsServiceMethod()
         {
             // Arrange
-            _mockAnimeService
+            MockAnimeService
                 .Setup(x => x.SyncAnimeDataAsync())
                 .ReturnsAsync(10);
 
-            var controller = new AnimeController(_mockAnimeService.Object);
+            var controller = new AnimeController(MockAnimeService.Object);
 
             // Act
             await controller.SyncAnimeData();
 
             // Assert
-            _mockAnimeService.Verify(x => x.SyncAnimeDataAsync(), Times.Once);
+            MockAnimeService.Verify(x => x.SyncAnimeDataAsync(), Times.Once);
         }
 
         #endregion

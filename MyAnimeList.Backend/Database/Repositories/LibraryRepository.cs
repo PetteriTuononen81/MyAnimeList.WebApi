@@ -25,93 +25,27 @@ namespace MyAnimeList.Backend.Database.Repositories
                 ?? throw new InvalidOperationException("DefaultConnection not found");
         }
 
-        public async Task<List<UserAnime>> GetUserLibraryAsync(int userId, AnimeWatchStatus? status = null)
+        public async Task<List<UserAnime>> GetUserLibraryAsync
+            (int userId, AnimeWatchStatus? status = null)
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var userAnimeDict = new Dictionary<int, UserAnime>();
+            var result = await connection.QueryAsync<UserAnime>(
+                "SELECT * FROM useranime WHERE userid = @UserId" +
+                (status.HasValue ? " AND status = @Status" : "") +
+                " ORDER BY dateupdated DESC",
+                new { UserId = userId, Status = status });
 
-            var result = await connection.QueryAsync<UserAnime, Anime, AnimeTitle, UserAnime>(
-                @"SELECT 
-                    ua.*,
-                    a.id AS animeid, a.malid AS animemalid, a.title, a.englishtitle, 
-                    a.japanesetitle, a.imageurl, a.synopsis, a.type, 
-                    a.episodes, a.status AS animestatus, a.score AS animescore, 
-                    a.popularity, a.rank, a.startdate AS animestartdate, 
-                    a.enddate AS animeenddate,
-                    t.id AS titleid, t.malid AS titlemalid, t.type AS titletype, 
-                    t.title AS titletext
-                FROM useranime ua
-                INNER JOIN anime a ON ua.malid = a.malid
-                LEFT JOIN animetitles t ON a.malid = t.malid
-                WHERE ua.userid = @UserId" +
-                (status.HasValue ? " AND ua.status = @Status" : "") +
-                " ORDER BY ua.dateupdated DESC",
-                (userAnime, anime, title) =>
-                {
-                    if (!userAnimeDict.TryGetValue(userAnime.Id, out var userAnimeEntry))
-                    {
-                        userAnimeEntry = userAnime;
-                        userAnimeEntry.Anime = anime;
-                        anime.Titles = new List<AnimeTitle>();
-                        userAnimeDict.Add(userAnime.Id, userAnimeEntry);
-                    }
-
-                    if (title != null)
-                    {
-                        userAnimeEntry.Anime!.Titles.Add(title);
-                    }
-
-                    return userAnimeEntry;
-                },
-                new { UserId = userId, Status = status },
-                splitOn: "animeid,titleid"
-            );
-
-            return userAnimeDict.Values.ToList();
+            return result.ToList();
         }
 
         public async Task<UserAnime?> GetUserAnimeAsync(int userId, int malId)
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            UserAnime? userAnime = null;
-
-            await connection.QueryAsync<UserAnime, Anime, AnimeTitle, UserAnime>(
-                @"SELECT 
-                    ua.*,
-                    a.id AS animeid, a.malid AS animemalid, a.title, a.englishtitle, 
-                    a.japanesetitle, a.imageurl, a.synopsis, a.type, 
-                    a.episodes, a.status AS animestatus, a.score AS animescore, 
-                    a.popularity, a.rank, a.startdate AS animestartdate, 
-                    a.enddate AS animeenddate,
-                    t.id AS titleid, t.malid AS titlemalid, t.type AS titletype, 
-                    t.title AS titletext
-                FROM useranime ua
-                INNER JOIN anime a ON ua.malid = a.malid
-                LEFT JOIN animetitles t ON a.malid = t.malid
-                WHERE ua.userid = @UserId AND ua.malid = @MalId",
-                (ua, anime, title) =>
-                {
-                    if (userAnime == null)
-                    {
-                        userAnime = ua;
-                        userAnime.Anime = anime;
-                        anime.Titles = new List<AnimeTitle>();
-                    }
-
-                    if (title != null)
-                    {
-                        userAnime.Anime!.Titles.Add(title);
-                    }
-
-                    return userAnime;
-                },
-                new { UserId = userId, MalId = malId },
-                splitOn: "animeid,titleid"
-            );
-
-            return userAnime;
+            return await connection.QueryFirstOrDefaultAsync<UserAnime>(
+                "SELECT * FROM useranime WHERE userid = @UserId AND malid = @MalId",
+                new { UserId = userId, MalId = malId });
         }
 
         public async Task<UserAnime> AddToLibraryAsync(UserAnime userAnime)

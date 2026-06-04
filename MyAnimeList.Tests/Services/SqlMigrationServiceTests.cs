@@ -2,49 +2,41 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using MyAnimeList.Backend.Services;
+using MyAnimeList.Tests.Fixtures;
 using Npgsql;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace MyAnimeList.Tests.Services
 {
-    public class SqlMigrationServiceTests : IAsyncLifetime
+    public class SqlMigrationServiceTests : IClassFixture<PostgreSqlFixture>, IAsyncLifetime
     {
-        private readonly PostgreSqlContainer _postgresContainer;
-        private string _connectionString = string.Empty;
+        private readonly PostgreSqlFixture _fixture;
         private readonly Mock<ILogger<SqlMigrationService>> _loggerMock;
         private readonly Mock<IConfiguration> _configMock;
+        private string ConnectionString => _fixture.ConnectionString;
 
-        public SqlMigrationServiceTests()
+        public SqlMigrationServiceTests(PostgreSqlFixture fixture)
         {
-            // Setup PostgreSQL test container
-            _postgresContainer = new PostgreSqlBuilder()
-                .WithImage("postgres:16-alpine")
-                .WithDatabase("testdb")
-                .WithUsername("testuser")
-                .WithPassword("testpass")
-                .Build();
-
+            _fixture = fixture;
             _loggerMock = new Mock<ILogger<SqlMigrationService>>();
             _configMock = new Mock<IConfiguration>();
+
+            // Setup configuration mock
+            var connectionStringsSection = new Mock<IConfigurationSection>();
+            connectionStringsSection.Setup(s => s["DefaultConnection"]).Returns(ConnectionString);
+            _configMock.Setup(c => c.GetSection("ConnectionStrings")).Returns(connectionStringsSection.Object);
         }
 
         public async Task InitializeAsync()
         {
-            // Start the PostgreSQL container
-            await _postgresContainer.StartAsync();
-            _connectionString = _postgresContainer.GetConnectionString();
-
-            // Setup configuration mock - use GetSection instead of GetConnectionString
-            var connectionStringsSection = new Mock<IConfigurationSection>();
-            connectionStringsSection.Setup(s => s["DefaultConnection"]).Returns(_connectionString);
-            _configMock.Setup(c => c.GetSection("ConnectionStrings")).Returns(connectionStringsSection.Object);
+            // Clean database before each test to ensure isolation
+            await _fixture.CleanDatabaseAsync();
         }
 
-        public async Task DisposeAsync()
+        public Task DisposeAsync()
         {
-            // Stop and dispose the container
-            await _postgresContainer.DisposeAsync();
+            // No cleanup needed per test
+            return Task.CompletedTask;
         }
 
         [Fact]
@@ -57,12 +49,12 @@ namespace MyAnimeList.Tests.Services
             await service.ApplyMigrationsAsync();
 
             // Assert
-            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var connection = new NpgsqlConnection(ConnectionString);
             await connection.OpenAsync();
 
             var command = new NpgsqlCommand(
                 @"SELECT COUNT(*) FROM information_schema.tables 
-                  WHERE table_name = '__SqlMigrations'", 
+                  WHERE table_name = 'sqlmigrations'", 
                 connection);
 
             var result = (long?)await command.ExecuteScalarAsync();
@@ -79,11 +71,11 @@ namespace MyAnimeList.Tests.Services
             await service.ApplyMigrationsAsync();
 
             // Assert
-            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var connection = new NpgsqlConnection(ConnectionString);
             await connection.OpenAsync();
 
             var command = new NpgsqlCommand(
-                @"SELECT ""MigrationName"" FROM ""__SqlMigrations"" ORDER BY ""AppliedAt""", 
+                @"SELECT migrationname FROM sqlmigrations ORDER BY appliedat", 
                 connection);
 
             var migrations = new List<string>();
@@ -125,9 +117,9 @@ namespace MyAnimeList.Tests.Services
             await service.ApplyMigrationsAsync();
 
             // Assert
-            var tables = new[] { "Anime", "Users", "UserAnime", "AnimeTitles" };
+            var tables = new[] { "anime", "users", "useranime", "animetitles" };
 
-            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var connection = new NpgsqlConnection(ConnectionString);
             await connection.OpenAsync();
 
             foreach (var table in tables)
@@ -154,13 +146,13 @@ namespace MyAnimeList.Tests.Services
             // Assert - Check some key indexes exist
             var indexes = new[] 
             { 
-                "IX_Anime_MalId", 
-                "IX_Users_Email", 
-                "IX_UserAnime_UserId_MalId",
-                "IX_AnimeTitles_MalId_Type"
+                "ix_anime_malid", 
+                "ix_users_email", 
+                "ix_useranime_userid_malid",
+                "ix_animetitles_malid_type"
             };
 
-            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var connection = new NpgsqlConnection(ConnectionString);
             await connection.OpenAsync();
 
             foreach (var index in indexes)
@@ -185,7 +177,7 @@ namespace MyAnimeList.Tests.Services
             await service.ApplyMigrationsAsync();
 
             // Assert
-            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var connection = new NpgsqlConnection(ConnectionString);
             await connection.OpenAsync();
 
             var command = new NpgsqlCommand(
@@ -202,9 +194,9 @@ namespace MyAnimeList.Tests.Services
             }
 
             // Verify key foreign keys exist
-            Assert.Contains(foreignKeys, fk => fk.Contains("FK_UserAnime_Users"));
-            Assert.Contains(foreignKeys, fk => fk.Contains("FK_UserAnime_Anime"));
-            Assert.Contains(foreignKeys, fk => fk.Contains("FK_AnimeTitles_Anime"));
+            Assert.Contains(foreignKeys, fk => fk.Contains("fk_useranime_users"));
+            Assert.Contains(foreignKeys, fk => fk.Contains("fk_useranime_anime"));
+            Assert.Contains(foreignKeys, fk => fk.Contains("fk_animetitles_anime"));
         }
 
         [Fact]
@@ -233,14 +225,14 @@ namespace MyAnimeList.Tests.Services
             await service.ApplyMigrationsAsync();
 
             // Assert - Verify we can insert and query data
-            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var connection = new NpgsqlConnection(ConnectionString);
             await connection.OpenAsync();
 
             // Insert test anime
             var insertCmd = new NpgsqlCommand(
-                @"INSERT INTO ""Anime"" (""MalId"", ""Title"", ""Episodes"", ""CreatedAt"", ""UpdatedAt"") 
-                  VALUES (1, 'Test Anime', 12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
-                  RETURNING ""Id""", 
+                @"INSERT INTO anime (malid, title, episodes) 
+                  VALUES (1, 'Test Anime', 12) 
+                  RETURNING id", 
                 connection);
 
             var animeId = await insertCmd.ExecuteScalarAsync();
@@ -248,9 +240,9 @@ namespace MyAnimeList.Tests.Services
 
             // Insert test title
             var titleCmd = new NpgsqlCommand(
-                @"INSERT INTO ""AnimeTitles"" (""MalId"", ""Type"", ""Title"") 
+                @"INSERT INTO animetitles (malid, type, title) 
                   VALUES (1, 'English', 'Test Anime English') 
-                  RETURNING ""Id""", 
+                  RETURNING id", 
                 connection);
 
             var titleId = await titleCmd.ExecuteScalarAsync();
@@ -258,10 +250,10 @@ namespace MyAnimeList.Tests.Services
 
             // Query back
             var queryCmd = new NpgsqlCommand(
-                @"SELECT a.""Title"", t.""Title"" 
-                  FROM ""Anime"" a 
-                  JOIN ""AnimeTitles"" t ON a.""MalId"" = t.""MalId"" 
-                  WHERE a.""MalId"" = 1", 
+                @"SELECT a.title, t.title 
+                  FROM anime a 
+                  JOIN animetitles t ON a.malid = t.malid 
+                  WHERE a.malid = 1", 
                 connection);
 
             await using var reader = await queryCmd.ExecuteReaderAsync();
@@ -272,11 +264,11 @@ namespace MyAnimeList.Tests.Services
 
         private async Task<long> GetMigrationCountAsync()
         {
-            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var connection = new NpgsqlConnection(ConnectionString);
             await connection.OpenAsync();
 
             var command = new NpgsqlCommand(
-                @"SELECT COUNT(*) FROM ""__SqlMigrations""", 
+                @"SELECT COUNT(*) FROM sqlmigrations", 
                 connection);
 
             return (long)(await command.ExecuteScalarAsync() ?? 0L);

@@ -9,6 +9,7 @@ namespace MyAnimeList.Backend.Database.Repositories
     {
         Task<List<Anime>> GetAllAsync();
         Task<Anime?> GetByMalIdAsync(int malId);
+        Task<bool> ExistsAsync(int malId);
         Task AddAsync(Anime anime);
         Task AddRangeAsync(IEnumerable<Anime> animes);
         Task UpdateAsync(Anime anime);
@@ -46,6 +47,16 @@ namespace MyAnimeList.Backend.Database.Repositories
                 new { MalId = malId });
         }
 
+        public async Task<bool> ExistsAsync(int malId)
+        {
+            await using var connection = new NpgsqlConnection(_connectionString);
+
+            var count = await connection.ExecuteScalarAsync<int>(
+                "SELECT COUNT(1) FROM anime WHERE malid = @MalId",
+                new { MalId = malId });
+            return count > 0;
+        }
+
         public async Task AddAsync(Anime anime)
         {
             await using var connection = new NpgsqlConnection(_connectionString);
@@ -59,20 +70,6 @@ namespace MyAnimeList.Backend.Database.Repositories
                 (@MalId, @Title, @EnglishTitle, @JapaneseTitle, @ImageUrl, 
                  @Synopsis, @Type, @Episodes, @Status, @Score, 
                  @Popularity, @Rank, @StartDate, @EndDate)
-                ON CONFLICT (malid) DO UPDATE SET
-                    title = EXCLUDED.title,
-                    englishtitle = EXCLUDED.englishtitle,
-                    japanesetitle = EXCLUDED.japanesetitle,
-                    imageurl = EXCLUDED.imageurl,
-                    synopsis = EXCLUDED.synopsis,
-                    type = EXCLUDED.type,
-                    episodes = EXCLUDED.episodes,
-                    status = EXCLUDED.status,
-                    score = EXCLUDED.score,
-                    popularity = EXCLUDED.popularity,
-                    rank = EXCLUDED.rank,
-                    startdate = EXCLUDED.startdate,
-                    enddate = EXCLUDED.enddate
                 RETURNING id",
                 anime);
 
@@ -127,6 +124,12 @@ namespace MyAnimeList.Backend.Database.Repositories
                     enddate = @EndDate
                 WHERE malid = @MalId",
                 anime);
+
+            // Update titles if they exist
+            if (anime.Titles?.Any() == true)
+            {
+                await InsertTitlesAsync(connection, anime.MalId, anime.Titles);
+            }
         }
 
         private async Task InsertTitlesAsync(NpgsqlConnection connection, int malId, ICollection<AnimeTitle> titles)

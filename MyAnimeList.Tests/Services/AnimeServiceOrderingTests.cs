@@ -1,35 +1,29 @@
-using MyAnimeList.Backend.Models;
-using MyAnimeList.Backend.Database.Repositories;
-using MyAnimeList.Backend.Services;
-using Microsoft.Extensions.Logging;
 using Moq;
+using MyAnimeList.Backend.Models;
+using MyAnimeList.Tests.Fixtures;
 using Xunit;
 
 namespace MyAnimeList.Tests.Services
 {
-    public class AnimeServiceOrderingTests
+    public class AnimeServiceOrderingTests : IClassFixture<AnimeServiceFixture>
     {
+        private readonly AnimeServiceFixture _fixture;
+
+        public AnimeServiceOrderingTests(AnimeServiceFixture fixture)
+        {
+            _fixture = fixture;
+        }
+
         [Fact]
         public async Task GetAnimePaginatedAsync_NullScores_ShouldAppearLast()
         {
             // Arrange
-            var mockRepo = new Mock<IAnimeRepository>();
-            var httpClient = new HttpClient();
-            var jikanClient = new JikanApiClient(httpClient);
-            var mockLogger = new Mock<ILogger<AnimeService>>();
+            _fixture.ResetMocks();
 
-            var testData = new List<Anime>
-            {
-                new Anime { Id = 1, Title = "High Score", Score = 9.5, MalId = 1 },
-                new Anime { Id = 2, Title = "No Score A", Score = null, MalId = 2 },
-                new Anime { Id = 3, Title = "Medium Score", Score = 7.5, MalId = 3 },
-                new Anime { Id = 4, Title = "No Score B", Score = null, MalId = 4 },
-                new Anime { Id = 5, Title = "Low Score", Score = 5.0, MalId = 5 }
-            };
+            var testData = AnimeServiceFixture.GetAnimeWithVariousScores();
+            _fixture.MockRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(testData);
 
-            mockRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(testData);
-
-            var service = new AnimeService(mockRepo.Object, jikanClient, mockLogger.Object);
+            var service = _fixture.CreateService();
 
             // Act
             var (result, totalCount) = await service.GetAnimePaginatedAsync(page: 1, pageSize: 10);
