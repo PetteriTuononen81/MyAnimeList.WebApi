@@ -10,10 +10,12 @@ namespace MyAnimeList.Backend.Controllers
     public class AnimeController : ControllerBase
     {
         private readonly IAnimeService _animeService;
+        private readonly ILogger<AnimeController> _logger;
 
-        public AnimeController(IAnimeService animeService)
+        public AnimeController(IAnimeService animeService, ILogger<AnimeController> logger)
         {
             _animeService = animeService;
+            _logger = logger;
         }
 
         /// <summary>

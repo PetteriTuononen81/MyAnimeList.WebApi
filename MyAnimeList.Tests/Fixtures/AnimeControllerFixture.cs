@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Logging;
 using Moq;
+using MyAnimeList.Backend.Controllers;
 using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Services;
 
@@ -11,10 +13,12 @@ namespace MyAnimeList.Tests.Fixtures
     public class AnimeControllerFixture
     {
         public Mock<IAnimeService> MockAnimeService { get; }
+        public Mock<ILogger<AnimeController>> MockLogger { get; }
 
         public AnimeControllerFixture()
         {
             MockAnimeService = new Mock<IAnimeService>();
+            MockLogger = new Mock<ILogger<AnimeController>>();
         }
 
         /// <summary>
@@ -58,6 +62,7 @@ namespace MyAnimeList.Tests.Fixtures
         public void ResetMocks()
         {
             MockAnimeService.Reset();
+            MockLogger.Reset();
         }
     }
 }
