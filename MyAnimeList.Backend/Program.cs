@@ -20,7 +20,10 @@ builder.Services.AddDbContext<AnimeDbContext>(options =>
 // Add HTTP Client for Jikan API (for cron job sync only)
 builder.Services.AddHttpClient<JikanApiClient>();
 
-// Add database initialization service
+// Add SQL migration service (replaces EF migrations)
+builder.Services.AddScoped<ISqlMigrationService, SqlMigrationService>();
+
+// Add database initialization service (kept for compatibility, but now uses SQL migrations)
 builder.Services.AddScoped<DatabaseInitializationService>();
 builder.Services.AddScoped<IAnimeService, AnimeService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -65,11 +68,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Initialize database on startup (includes migration)
+// Apply SQL migrations on startup
 using (var scope = app.Services.CreateScope())
 {
-    var dbInitializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializationService>();
-    await dbInitializer.InitializeAsync();
+    var sqlMigrationService = scope.ServiceProvider.GetRequiredService<ISqlMigrationService>();
+    await sqlMigrationService.ApplyMigrationsAsync();
 }
 
 // Configure the HTTP request pipeline.

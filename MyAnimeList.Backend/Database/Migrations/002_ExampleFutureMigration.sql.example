@@ -1,0 +1,22 @@
+-- Migration: 002_ExampleFutureMigration
+-- Description: Example of how to add a new column in the future
+-- Date: YYYY-MM-DD
+-- NOTE: This is just an example. Delete or rename this file if not needed.
+
+-- Example: Adding a new column
+-- ALTER TABLE "Anime" ADD COLUMN IF NOT EXISTS "YourNewColumn" TEXT;
+
+-- Example: Creating a new table
+-- CREATE TABLE IF NOT EXISTS "YourNewTable" (
+--     "Id" SERIAL PRIMARY KEY,
+--     "SomeColumn" TEXT NOT NULL,
+--     "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+-- );
+
+-- Example: Adding an index
+-- CREATE INDEX IF NOT EXISTS "IX_YourTable_Column" ON "YourNewTable" ("SomeColumn");
+
+-- Example: Adding a foreign key
+-- ALTER TABLE "YourNewTable" 
+--     ADD CONSTRAINT "FK_YourNewTable_Anime_MalId" 
+--     FOREIGN KEY ("MalId") REFERENCES "Anime" ("MalId") ON DELETE CASCADE;
