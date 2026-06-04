@@ -41,12 +41,11 @@ namespace MyAnimeList.Backend.Services
 
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"
-                INSERT INTO users (email, username, passwordhash, createdat)
+            user.Id = await connection.ExecuteScalarAsync<int>(
+                @"INSERT INTO users (email, username, passwordhash, createdat)
                 VALUES (@Email, @Username, @PasswordHash, @CreatedAt)
-                RETURNING id";
-
-            user.Id = await connection.ExecuteScalarAsync<int>(sql, user);
+                RETURNING id",
+                user);
 
             return user;
         }
@@ -73,18 +72,18 @@ namespace MyAnimeList.Backend.Services
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = "SELECT * FROM users WHERE email = @Email";
-
-            return await connection.QueryFirstOrDefaultAsync<User>(sql, new { Email = email });
+            return await connection.QueryFirstOrDefaultAsync<User>(
+                "SELECT * FROM users WHERE email = @Email",
+                new { Email = email });
         }
 
         public async Task<User?> GetUserByUsernameAsync(string username)
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = "SELECT * FROM users WHERE username = @Username";
-
-            return await connection.QueryFirstOrDefaultAsync<User>(sql, new { Username = username });
+            return await connection.QueryFirstOrDefaultAsync<User>(
+                "SELECT * FROM users WHERE username = @Username",
+                new { Username = username });
         }
 
         public string GenerateJwtToken(User user)

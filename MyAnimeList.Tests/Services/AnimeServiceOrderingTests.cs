@@ -1,5 +1,5 @@
 using MyAnimeList.Backend.Models;
-using MyAnimeList.Backend.Repositories;
+using MyAnimeList.Backend.Database.Repositories;
 using MyAnimeList.Backend.Services;
 using Microsoft.Extensions.Logging;
 using Moq;

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using MyAnimeList.Backend.Models;
 using Npgsql;
 
-namespace MyAnimeList.Backend.Repositories
+namespace MyAnimeList.Backend.Database.Repositories
 {
     public interface IAnimeRepository
     {
@@ -28,12 +28,10 @@ namespace MyAnimeList.Backend.Repositories
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"
-                SELECT *
+            var animes = await connection.QueryAsync<Anime>(
+                @"SELECT *
                 FROM anime
-                ORDER BY score DESC NULLS LAST";
-
-            var animes = await connection.QueryAsync<Anime>(sql);
+                ORDER BY score DESC NULLS LAST");
             return animes.ToList();
         }
 
@@ -41,20 +39,19 @@ namespace MyAnimeList.Backend.Repositories
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"
-                SELECT *
+            return await connection.QueryFirstOrDefaultAsync<Anime>(
+                @"SELECT *
                 FROM anime
-                WHERE malid = @MalId";
-
-            return await connection.QueryFirstOrDefaultAsync<Anime>(sql, new { MalId = malId });
+                WHERE malid = @MalId",
+                new { MalId = malId });
         }
 
         public async Task AddAsync(Anime anime)
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"
-                INSERT INTO anime 
+            anime.Id = await connection.ExecuteScalarAsync<int>(
+                @"INSERT INTO anime 
                 (malid, title, englishtitle, japanesetitle, imageurl, 
                  synopsis, type, episodes, status, score, 
                  popularity, rank, startdate, enddate)
@@ -76,9 +73,8 @@ namespace MyAnimeList.Backend.Repositories
                     rank = EXCLUDED.rank,
                     startdate = EXCLUDED.startdate,
                     enddate = EXCLUDED.enddate
-                RETURNING id";
-
-            anime.Id = await connection.ExecuteScalarAsync<int>(sql, anime);
+                RETURNING id",
+                anime);
 
             // Insert titles if they exist
             if (anime.Titles?.Any() == true)
@@ -114,8 +110,8 @@ namespace MyAnimeList.Backend.Repositories
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"
-                UPDATE anime
+            await connection.ExecuteAsync(
+                @"UPDATE anime
                 SET title = @Title,
                     englishtitle = @EnglishTitle,
                     japanesetitle = @JapaneseTitle,
@@ -129,9 +125,8 @@ namespace MyAnimeList.Backend.Repositories
                     rank = @Rank,
                     startdate = @StartDate,
                     enddate = @EndDate
-                WHERE malid = @MalId";
-
-            await connection.ExecuteAsync(sql, anime);
+                WHERE malid = @MalId",
+                anime);
         }
 
         private async Task InsertTitlesAsync(NpgsqlConnection connection, int malId, ICollection<AnimeTitle> titles)

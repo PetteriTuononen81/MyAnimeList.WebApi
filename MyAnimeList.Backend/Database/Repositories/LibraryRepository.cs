@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using MyAnimeList.Backend.Models;
 using Npgsql;
 
-namespace MyAnimeList.Backend.Repositories
+namespace MyAnimeList.Backend.Database.Repositories
 {
     public interface ILibraryRepository
     {
@@ -29,8 +29,10 @@ namespace MyAnimeList.Backend.Repositories
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"
-                SELECT 
+            var userAnimeDict = new Dictionary<int, UserAnime>();
+
+            var result = await connection.QueryAsync<UserAnime, Anime, AnimeTitle, UserAnime>(
+                @"SELECT 
                     ua.*,
                     a.id AS animeid, a.malid AS animemalid, a.title, a.englishtitle, 
                     a.japanesetitle, a.imageurl, a.synopsis, a.type, 
@@ -44,12 +46,7 @@ namespace MyAnimeList.Backend.Repositories
                 LEFT JOIN animetitles t ON a.malid = t.malid
                 WHERE ua.userid = @UserId" +
                 (status.HasValue ? " AND ua.status = @Status" : "") +
-                " ORDER BY ua.dateupdated DESC";
-
-            var userAnimeDict = new Dictionary<int, UserAnime>();
-
-            var result = await connection.QueryAsync<UserAnime, Anime, AnimeTitle, UserAnime>(
-                sql,
+                " ORDER BY ua.dateupdated DESC",
                 (userAnime, anime, title) =>
                 {
                     if (!userAnimeDict.TryGetValue(userAnime.Id, out var userAnimeEntry))
@@ -78,8 +75,10 @@ namespace MyAnimeList.Backend.Repositories
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"
-                SELECT 
+            UserAnime? userAnime = null;
+
+            await connection.QueryAsync<UserAnime, Anime, AnimeTitle, UserAnime>(
+                @"SELECT 
                     ua.*,
                     a.id AS animeid, a.malid AS animemalid, a.title, a.englishtitle, 
                     a.japanesetitle, a.imageurl, a.synopsis, a.type, 
@@ -91,12 +90,7 @@ namespace MyAnimeList.Backend.Repositories
                 FROM useranime ua
                 INNER JOIN anime a ON ua.malid = a.malid
                 LEFT JOIN animetitles t ON a.malid = t.malid
-                WHERE ua.userid = @UserId AND ua.malid = @MalId";
-
-            UserAnime? userAnime = null;
-
-            await connection.QueryAsync<UserAnime, Anime, AnimeTitle, UserAnime>(
-                sql,
+                WHERE ua.userid = @UserId AND ua.malid = @MalId",
                 (ua, anime, title) =>
                 {
                     if (userAnime == null)
@@ -124,16 +118,15 @@ namespace MyAnimeList.Backend.Repositories
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"
-                INSERT INTO useranime 
+            userAnime.Id = await connection.ExecuteScalarAsync<int>(
+                @"INSERT INTO useranime 
                 (userid, malid, status, score, episodeswatched, 
                  startdate, finishdate, dateadded, dateupdated)
                 VALUES 
                 (@UserId, @MalId, @Status, @Score, @EpisodesWatched, 
                  @StartDate, @FinishDate, @DateAdded, @DateUpdated)
-                RETURNING id";
-
-            userAnime.Id = await connection.ExecuteScalarAsync<int>(sql, userAnime);
+                RETURNING id",
+                userAnime);
 
             // Load the anime and titles for response
             return (await GetUserAnimeAsync(userAnime.UserId, userAnime.MalId))!;
@@ -145,17 +138,16 @@ namespace MyAnimeList.Backend.Repositories
 
             userAnime.DateUpdated = DateTime.UtcNow;
 
-            var sql = @"
-                UPDATE useranime
+            await connection.ExecuteAsync(
+                @"UPDATE useranime
                 SET status = @Status, 
                     score = @Score, 
                     episodeswatched = @EpisodesWatched,
                     startdate = @StartDate, 
                     finishdate = @FinishDate, 
                     dateupdated = @DateUpdated
-                WHERE userid = @UserId AND malid = @MalId";
-
-            await connection.ExecuteAsync(sql, userAnime);
+                WHERE userid = @UserId AND malid = @MalId",
+                userAnime);
 
             // Load the updated anime and titles for response
             return (await GetUserAnimeAsync(userAnime.UserId, userAnime.MalId))!;
@@ -165,11 +157,10 @@ namespace MyAnimeList.Backend.Repositories
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"
-                DELETE FROM useranime
-                WHERE userid = @UserId AND malid = @MalId";
-
-            var rowsAffected = await connection.ExecuteAsync(sql, new { UserId = userId, MalId = malId });
+            var rowsAffected = await connection.ExecuteAsync(
+                @"DELETE FROM useranime
+                WHERE userid = @UserId AND malid = @MalId",
+                new { UserId = userId, MalId = malId });
             return rowsAffected > 0;
         }
 
@@ -177,12 +168,11 @@ namespace MyAnimeList.Backend.Repositories
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"
-                SELECT COUNT(1) 
+            var count = await connection.ExecuteScalarAsync<int>(
+                @"SELECT COUNT(1) 
                 FROM useranime 
-                WHERE userid = @UserId AND malid = @MalId";
-
-            var count = await connection.ExecuteScalarAsync<int>(sql, new { UserId = userId, MalId = malId });
+                WHERE userid = @UserId AND malid = @MalId",
+                new { UserId = userId, MalId = malId });
             return count > 0;
         }
     }

@@ -1,4 +1,4 @@
-using MyAnimeList.Backend.Repositories;
+using MyAnimeList.Backend.Database.Repositories;
 using MyAnimeList.Backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;

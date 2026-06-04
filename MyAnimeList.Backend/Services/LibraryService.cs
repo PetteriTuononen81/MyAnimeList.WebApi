@@ -1,7 +1,7 @@
 using Dapper;
 using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Models.Dtos;
-using MyAnimeList.Backend.Repositories;
+using MyAnimeList.Backend.Database.Repositories;
 using Npgsql;
 
 namespace MyAnimeList.Backend.Services
