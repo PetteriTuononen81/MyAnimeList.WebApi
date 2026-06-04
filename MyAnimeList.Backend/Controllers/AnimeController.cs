@@ -75,6 +75,9 @@ namespace MyAnimeList.Backend.Controllers
                 HasPreviousPage = page > 1
             };
 
+            _logger.LogInformation("Search completed for term: '{Query}' - Returning {AnimeCount} anime out of {TotalCount} total results. Page: {Page}/{TotalPages}", 
+                query, animes.Count, totalCount, page, response.TotalPages);
+
             return Ok(response);
         }
 

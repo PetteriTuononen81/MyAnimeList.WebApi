@@ -79,6 +79,9 @@ namespace MyAnimeList.Backend.Services
                 .Take(pageSize)
                 .ToList();
 
+            _logger.LogInformation("Search results for '{SearchTerm}': Found {TotalCount} total matches, returning {ReturnedCount} items for page {Page}", 
+                searchTerm, totalCount, paginatedAnime.Count, page);
+
             return (paginatedAnime, totalCount);
         }
 
