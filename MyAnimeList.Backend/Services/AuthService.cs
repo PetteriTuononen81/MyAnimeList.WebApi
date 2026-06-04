@@ -73,10 +73,7 @@ namespace MyAnimeList.Backend.Services
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"
-                SELECT id, email, username, passwordhash, createdat
-                FROM users
-                WHERE email = @Email";
+            var sql = "SELECT * FROM users WHERE email = @Email";
 
             return await connection.QueryFirstOrDefaultAsync<User>(sql, new { Email = email });
         }
@@ -85,10 +82,7 @@ namespace MyAnimeList.Backend.Services
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"
-                SELECT id, email, username, passwordhash, createdat
-                FROM users
-                WHERE username = @Username";
+            var sql = "SELECT * FROM users WHERE username = @Username";
 
             return await connection.QueryFirstOrDefaultAsync<User>(sql, new { Username = username });
         }

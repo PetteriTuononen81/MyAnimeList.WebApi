@@ -29,9 +29,7 @@ namespace MyAnimeList.Backend.Repositories
             await using var connection = new NpgsqlConnection(_connectionString);
 
             var sql = @"
-                SELECT id, malid, title, englishtitle, japanesetitle, 
-                       imageurl, synopsis, type, episodes, status, 
-                       score, popularity, rank, startdate, enddate
+                SELECT *
                 FROM anime
                 ORDER BY score DESC NULLS LAST";
 
@@ -44,9 +42,7 @@ namespace MyAnimeList.Backend.Repositories
             await using var connection = new NpgsqlConnection(_connectionString);
 
             var sql = @"
-                SELECT id, malid, title, englishtitle, japanesetitle, 
-                       imageurl, synopsis, type, episodes, status, 
-                       score, popularity, rank, startdate, enddate
+                SELECT *
                 FROM anime
                 WHERE malid = @MalId";
 

@@ -31,22 +31,20 @@ namespace MyAnimeList.Backend.Repositories
 
             var sql = @"
                 SELECT 
-                    ua.""Id"", ua.""UserId"", ua.""MalId"", ua.""Status"", ua.""Score"", 
-                    ua.""EpisodesWatched"", ua.""StartDate"", ua.""FinishDate"", 
-                    ua.""DateAdded"", ua.""DateUpdated"",
-                    a.""Id"" AS ""AnimeId"", a.""MalId"" AS ""AnimeMalId"", a.""Title"", a.""EnglishTitle"", 
-                    a.""JapaneseTitle"", a.""ImageUrl"", a.""Synopsis"", a.""Type"", 
-                    a.""Episodes"", a.""Status"" AS ""AnimeStatus"", a.""Score"" AS ""AnimeScore"", 
-                    a.""Popularity"", a.""Rank"", a.""StartDate"" AS ""AnimeStartDate"", 
-                    a.""EndDate"" AS ""AnimeEndDate"",
-                    t.""Id"" AS ""TitleId"", t.""MalId"" AS ""TitleMalId"", t.""Type"" AS ""TitleType"", 
-                    t.""Title"" AS ""TitleText""
-                FROM ""UserAnime"" ua
-                INNER JOIN ""Anime"" a ON ua.""MalId"" = a.""MalId""
-                LEFT JOIN ""AnimeTitles"" t ON a.""MalId"" = t.""MalId""
-                WHERE ua.""UserId"" = @UserId" +
-                (status.HasValue ? @" AND ua.""Status"" = @Status" : "") +
-                @" ORDER BY ua.""DateUpdated"" DESC";
+                    ua.*,
+                    a.id AS animeid, a.malid AS animemalid, a.title, a.englishtitle, 
+                    a.japanesetitle, a.imageurl, a.synopsis, a.type, 
+                    a.episodes, a.status AS animestatus, a.score AS animescore, 
+                    a.popularity, a.rank, a.startdate AS animestartdate, 
+                    a.enddate AS animeenddate,
+                    t.id AS titleid, t.malid AS titlemalid, t.type AS titletype, 
+                    t.title AS titletext
+                FROM useranime ua
+                INNER JOIN anime a ON ua.malid = a.malid
+                LEFT JOIN animetitles t ON a.malid = t.malid
+                WHERE ua.userid = @UserId" +
+                (status.HasValue ? " AND ua.status = @Status" : "") +
+                " ORDER BY ua.dateupdated DESC";
 
             var userAnimeDict = new Dictionary<int, UserAnime>();
 
@@ -70,7 +68,7 @@ namespace MyAnimeList.Backend.Repositories
                     return userAnimeEntry;
                 },
                 new { UserId = userId, Status = status },
-                splitOn: "AnimeId,TitleId"
+                splitOn: "animeid,titleid"
             );
 
             return userAnimeDict.Values.ToList();
@@ -82,20 +80,18 @@ namespace MyAnimeList.Backend.Repositories
 
             var sql = @"
                 SELECT 
-                    ua.""Id"", ua.""UserId"", ua.""MalId"", ua.""Status"", ua.""Score"", 
-                    ua.""EpisodesWatched"", ua.""StartDate"", ua.""FinishDate"", 
-                    ua.""DateAdded"", ua.""DateUpdated"",
-                    a.""Id"" AS ""AnimeId"", a.""MalId"" AS ""AnimeMalId"", a.""Title"", a.""EnglishTitle"", 
-                    a.""JapaneseTitle"", a.""ImageUrl"", a.""Synopsis"", a.""Type"", 
-                    a.""Episodes"", a.""Status"" AS ""AnimeStatus"", a.""Score"" AS ""AnimeScore"", 
-                    a.""Popularity"", a.""Rank"", a.""StartDate"" AS ""AnimeStartDate"", 
-                    a.""EndDate"" AS ""AnimeEndDate"",
-                    t.""Id"" AS ""TitleId"", t.""MalId"" AS ""TitleMalId"", t.""Type"" AS ""TitleType"", 
-                    t.""Title"" AS ""TitleText""
-                FROM ""UserAnime"" ua
-                INNER JOIN ""Anime"" a ON ua.""MalId"" = a.""MalId""
-                LEFT JOIN ""AnimeTitles"" t ON a.""MalId"" = t.""MalId""
-                WHERE ua.""UserId"" = @UserId AND ua.""MalId"" = @MalId";
+                    ua.*,
+                    a.id AS animeid, a.malid AS animemalid, a.title, a.englishtitle, 
+                    a.japanesetitle, a.imageurl, a.synopsis, a.type, 
+                    a.episodes, a.status AS animestatus, a.score AS animescore, 
+                    a.popularity, a.rank, a.startdate AS animestartdate, 
+                    a.enddate AS animeenddate,
+                    t.id AS titleid, t.malid AS titlemalid, t.type AS titletype, 
+                    t.title AS titletext
+                FROM useranime ua
+                INNER JOIN anime a ON ua.malid = a.malid
+                LEFT JOIN animetitles t ON a.malid = t.malid
+                WHERE ua.userid = @UserId AND ua.malid = @MalId";
 
             UserAnime? userAnime = null;
 
@@ -118,7 +114,7 @@ namespace MyAnimeList.Backend.Repositories
                     return userAnime;
                 },
                 new { UserId = userId, MalId = malId },
-                splitOn: "AnimeId,TitleId"
+                splitOn: "animeid,titleid"
             );
 
             return userAnime;
