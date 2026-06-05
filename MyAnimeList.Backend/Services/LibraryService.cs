@@ -40,7 +40,13 @@ namespace MyAnimeList.Backend.Services
 
             var userAnimes = await _libraryRepository.GetUserLibraryAsync(userId, status);
 
-            return userAnimes.Select(ua => MapToDto(ua)).ToList();
+            var dtoTasks = userAnimes.Select(async ua =>
+            {
+                ua.Anime = await _animeRepository.GetByMalIdAsync(ua.MalId);
+                return MapToDto(ua);
+            });
+
+            return (await Task.WhenAll(dtoTasks)).ToList();
         }
 
         public async Task<UserAnimeDto?> AddToLibraryAsync(int userId, AddToLibraryDto dto)
@@ -77,6 +83,7 @@ namespace MyAnimeList.Backend.Services
             };
 
             var added = await _libraryRepository.AddToLibraryAsync(userAnime);
+            added.Anime = await _animeRepository.GetByMalIdAsync(added.MalId);
             return MapToDto(added);
         }
 
@@ -112,6 +119,7 @@ namespace MyAnimeList.Backend.Services
             }
 
             var updated = await _libraryRepository.UpdateLibraryItemAsync(userAnime);
+            updated.Anime = await _animeRepository.GetByMalIdAsync(updated.MalId);
             return MapToDto(updated);
         }
 
