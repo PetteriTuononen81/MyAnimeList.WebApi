@@ -1,7 +1,6 @@
-using Dapper;
 using Microsoft.IdentityModel.Tokens;
+using MyAnimeList.Backend.Database.Repositories;
 using MyAnimeList.Backend.Models;
-using Npgsql;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -11,22 +10,21 @@ namespace MyAnimeList.Backend.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly string _connectionString;
+        private readonly IAuthRepository _authRepository;
         private readonly IConfiguration _configuration;
 
-        public AuthService(IConfiguration configuration)
+        public AuthService(IConfiguration configuration, IAuthRepository authRepository)
         {
             _configuration = configuration;
-            _connectionString = configuration.GetConnectionString("DefaultConnection")
-                ?? throw new InvalidOperationException("DefaultConnection not found");
+            _authRepository = authRepository;
         }
 
         public async Task<User?> RegisterAsync(string email, string username, string password)
         {
-            if (await GetUserByEmailAsync(email) != null)
+            if (await _authRepository.GetUserByEmailAsync(email) != null)
                 return null;
 
-            if (await GetUserByUsernameAsync(username) != null)
+            if (await _authRepository.GetUserByUsernameAsync(username) != null)
                 return null;
 
             var passwordHash = HashPassword(password);
@@ -39,14 +37,7 @@ namespace MyAnimeList.Backend.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            await using var connection = new NpgsqlConnection(_connectionString);
-
-            user.Id = await connection.ExecuteScalarAsync<int>(
-                @"INSERT INTO users (email, username, passwordhash, createdat)
-                VALUES (@Email, @Username, @PasswordHash, @CreatedAt)
-                RETURNING id",
-                user);
-
+            user.Id = await _authRepository.CreateUserAsync(user);
             return user;
         }
 
@@ -68,22 +59,14 @@ namespace MyAnimeList.Backend.Services
             return user;
         }
 
-        public async Task<User?> GetUserByEmailAsync(string email)
+        public Task<User?> GetUserByEmailAsync(string email)
         {
-            await using var connection = new NpgsqlConnection(_connectionString);
-
-            return await connection.QueryFirstOrDefaultAsync<User>(
-                "SELECT * FROM users WHERE email = @Email",
-                new { Email = email });
+            return _authRepository.GetUserByEmailAsync(email);
         }
 
-        public async Task<User?> GetUserByUsernameAsync(string username)
+        public Task<User?> GetUserByUsernameAsync(string username)
         {
-            await using var connection = new NpgsqlConnection(_connectionString);
-
-            return await connection.QueryFirstOrDefaultAsync<User>(
-                "SELECT * FROM users WHERE username = @Username",
-                new { Username = username });
+            return _authRepository.GetUserByUsernameAsync(username);
         }
 
         public string GenerateJwtToken(User user)
@@ -115,6 +98,62 @@ namespace MyAnimeList.Backend.Services
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+        public Task<User?> GetUserByIdAsync(int userId)
+        {
+            return _authRepository.GetUserByIdAsync(userId);
+        }
+
+        public async Task<(string Token, string RefreshToken)> GenerateAuthTokensAsync(User user)
+        {
+            var token = GenerateJwtToken(user);
+            var (refreshToken, refreshTokenExpiry) = CreateRefreshTokenWithExpiry();
+
+            await _authRepository.SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
+            return (token, refreshToken);
+        }
+
+        public async Task<(string Token, string RefreshToken, User User)?> RefreshTokensAsync(string refreshToken)
+        {
+            var storedToken = await _authRepository.GetRefreshTokenAsync(refreshToken);
+            if (storedToken == null || storedToken.RevokedAt != null || storedToken.ExpiresAt <= DateTime.UtcNow)
+            {
+                return null;
+            }
+
+            var user = await _authRepository.GetUserByIdAsync(storedToken.UserId);
+            if (user == null)
+            {
+                return null;
+            }
+
+            // Rotate refresh token on refresh
+            await _authRepository.RevokeRefreshTokenAsync(storedToken.Token);
+
+            var token = GenerateJwtToken(user);
+            var (newRefreshToken, refreshTokenExpiry) = CreateRefreshTokenWithExpiry();
+
+            await _authRepository.SaveRefreshTokenAsync(user.Id, newRefreshToken, refreshTokenExpiry);
+            return (token, newRefreshToken, user);
+        }
+
+        private (string RefreshToken, DateTime ExpiresAt) CreateRefreshTokenWithExpiry()
+        {
+            var refreshToken = GenerateRefreshToken();
+            var jwtSettings = _configuration.GetSection("JwtSettings");
+            var refreshExpiryDays = int.Parse(jwtSettings["RefreshTokenExpiryInDays"] ?? "7");
+            var refreshTokenExpiry = DateTime.UtcNow.AddDays(refreshExpiryDays);
+            return (refreshToken, refreshTokenExpiry);
+        }
+
+        private static string GenerateRefreshToken()
+        {
+            var randomNumber = new byte[64];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
+        }
+
 
         public int? GetUserIdFromClaims(ClaimsPrincipal user)
         {

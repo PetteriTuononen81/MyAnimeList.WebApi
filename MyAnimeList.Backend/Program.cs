@@ -22,6 +22,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
 
 // Add repositories (now using Dapper with direct SQL queries)
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAnimeRepository, AnimeRepository>();
 builder.Services.AddScoped<ILibraryRepository, LibraryRepository>();
 

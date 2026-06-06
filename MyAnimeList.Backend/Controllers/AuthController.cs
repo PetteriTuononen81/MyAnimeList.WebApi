@@ -35,11 +35,12 @@ namespace MyAnimeList.Backend.Controllers
                 return BadRequest(new { message = "User with this email or username already exists" });
             }
 
-            var token = _authService.GenerateJwtToken(user);
+            var tokens = await _authService.GenerateAuthTokensAsync(user);
 
             var response = new AuthResponseDto
             {
-                Token = token,
+                Token = tokens.Token,
+                RefreshToken = tokens.RefreshToken,
                 User = new UserDto
                 {
                     Id = user.Id,
@@ -71,16 +72,51 @@ namespace MyAnimeList.Backend.Controllers
                 return Unauthorized(new { message = "Invalid email or password" });
             }
 
-            var token = _authService.GenerateJwtToken(user);
+            var tokens = await _authService.GenerateAuthTokensAsync(user);
 
             var response = new AuthResponseDto
             {
-                Token = token,
+                Token = tokens.Token,
+                RefreshToken = tokens.RefreshToken,
                 User = new UserDto
                 {
                     Id = user.Id,
                     Email = user.Email,
                     Username = user.Username
+                }
+            };
+
+            return Ok(response);
+        }
+
+        [HttpPost("refresh")]
+        public async Task<ActionResult<AuthResponseDto>> Refresh([FromBody] RefreshRequestDto request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                return BadRequest(new { message = "Validation failed", errors });
+            }
+
+            var tokens = await _authService.RefreshTokensAsync(request.RefreshToken);
+            if (tokens == null)
+            {
+                return Unauthorized(new { message = "Invalid or expired refresh token" });
+            }
+
+            var response = new AuthResponseDto
+            {
+                Token = tokens.Value.Token,
+                RefreshToken = tokens.Value.RefreshToken,
+                User = new UserDto
+                {
+                    Id = tokens.Value.User.Id,
+                    Email = tokens.Value.User.Email,
+                    Username = tokens.Value.User.Username
                 }
             };
 
