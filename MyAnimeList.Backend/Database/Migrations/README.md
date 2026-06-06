@@ -89,7 +89,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ix_reviews_userid_malid ON reviews (userid, ma
 ## Viewing Applied Migrations
 
 ```sql
-SELECT * FROM "__SqlMigrations" ORDER BY "AppliedAt";
+SELECT * FROM sqlmigrations ORDER BY appliedat;
 ```
 
 ## Manual Migration Application
@@ -104,7 +104,7 @@ docker exec -it myanimelist-postgres psql -U postgres -d myanimelist
 \i /path/to/migration.sql
 
 # Verify
-SELECT * FROM "__SqlMigrations";
+SELECT * FROM sqlmigrations;
 ```
 
 ## Rollback
@@ -113,7 +113,7 @@ To rollback a migration, you need to:
 
 1. Write a new migration that reverses the changes
 2. Or manually execute SQL to undo changes
-3. Delete the entry from `__SqlMigrations` table
+3. Delete the entry from `sqlmigrations` table
 
 Example rollback migration: `004_RollbackRatingColumn.sql`:
 
@@ -126,7 +126,7 @@ ALTER TABLE "Anime" DROP COLUMN IF EXISTS "Rating";
 DROP INDEX IF EXISTS "IX_Anime_Rating";
 
 -- Remove the original migration from tracking
-DELETE FROM "__SqlMigrations" WHERE "MigrationName" = '002_AddAnimeRatingColumn';
+DELETE FROM sqlmigrations WHERE migrationname = '002_AddAnimeRatingColumn';
 ```
 
 ## Troubleshooting
@@ -138,8 +138,8 @@ DELETE FROM "__SqlMigrations" WHERE "MigrationName" = '002_AddAnimeRatingColumn'
 - Ensure filename follows naming convention
 
 ### Migration Already Applied
-- Check `__SqlMigrations` table
-- If you want to re-run, delete the entry: `DELETE FROM "__SqlMigrations" WHERE "MigrationName" = 'XXX_Name';`
+- Check `sqlmigrations` table
+- If you want to re-run, delete the entry: `DELETE FROM sqlmigrations WHERE migrationname = 'XXX_Name';`
 
 ### Fresh Start
 ```sh

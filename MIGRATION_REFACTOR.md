@@ -30,9 +30,9 @@ MyAnimeList.Backend/
 
 1. **On Startup**: `SqlMigrationService` runs automatically
 2. **Reads SQL Files**: From `Database/Migrations/` directory
-3. **Checks Tracking**: Looks at `__SqlMigrations` table
+3. **Checks Tracking**: Looks at `sqlmigrations` table
 4. **Applies New Ones**: Only runs migrations not yet applied
-5. **Records**: Adds entry to `__SqlMigrations` table
+5. **Records**: Adds entry to `sqlmigrations` table
 
 ## Creating New Migrations
 
@@ -92,26 +92,26 @@ To rollback a migration, create a new migration that reverses it:
 DROP TABLE IF EXISTS "YourTable";
 
 -- Remove the original migration from tracking (optional)
-DELETE FROM "__SqlMigrations" WHERE "MigrationName" = '002_YourFeature';
+DELETE FROM sqlmigrations WHERE migrationname = '002_YourFeature';
 ```
 
 ## Viewing Applied Migrations
 
 ```sql
-SELECT * FROM "__SqlMigrations" ORDER BY "AppliedAt";
+SELECT * FROM sqlmigrations ORDER BY appliedat;
 ```
 
 ## What We Deleted
 
 - ❌ `Migrations/` folder (old EF Core migrations)
-- ❌ `DatabaseInitializationService.cs` (still exists but simplified)
 - ❌ Need to run `dotnet ef migrations add`
 
 ## What We Kept
 
-- ✅ `AnimeDbContext` - Still used for normal data access
-- ✅ Entity Framework Core - Still used for queries
-- ✅ Repositories and Services - No changes needed
+- ✅ `Database/Migrations/` with pure SQL migration files
+- ✅ `SqlMigrationService` to apply migrations automatically on startup
+- ✅ Repository pattern with Dapper
+- ✅ No Entity Framework Core dependency
 
 ## Benefits
 

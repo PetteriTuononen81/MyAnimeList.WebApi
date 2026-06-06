@@ -41,7 +41,7 @@ Manually triggers anime data synchronization from Jikan API. Called monthly by c
 
 - **.NET 10** - Latest long-term support framework
 - **ASP.NET Core** - Web API framework
-- **Entity Framework Core** - ORM with PostgreSQL provider
+- **Dapper** - Lightweight SQL mapper for PostgreSQL
 - **PostgreSQL** - Database
 - **Docker & Docker Compose** - Containerization
 - **xUnit** - Testing framework
@@ -55,15 +55,11 @@ MyAnimeList.WebApi/
 ?   ??? Controllers/
 ?   ?   ??? AnimeController.cs
 ?   ??? Services/
-?   ?   ??? JikanApiService.cs
-?   ?   ??? DatabaseInitializationService.cs
+?   ?   ??? JikanApiClient.cs
 ?   ??? Models/
 ?   ?   ??? Anime.cs
 ?   ?   ??? Dtos/
 ?   ?       ??? AnimeListResponseDto.cs
-?   ?       ??? PaginationDto.cs
-?   ??? Data/
-?   ?   ??? AnimeDbContext.cs
 ?   ??? Program.cs
 ?   ??? appsettings.json
 ?   ??? appsettings.Production.json
@@ -72,7 +68,6 @@ MyAnimeList.WebApi/
 ?   ??? Controllers/
 ?   ?   ??? AnimeControllerTests.cs
 ?   ??? Fixtures/
-?       ??? AnimeDbContextFixture.cs
 ??? docker-compose.yml
 ??? scripts/
 ?   ??? monthly-sync.sh
@@ -273,5 +268,5 @@ For issues or questions:
 
 - [Jikan API Documentation](https://jikan.moe/)
 - [.NET 10 Documentation](https://learn.microsoft.com/en-us/dotnet/)
-- [Entity Framework Core](https://learn.microsoft.com/en-us/ef/core/)
+- [Dapper Documentation](https://dapper-tutorial.net/)
 - [Docker Documentation](https://docs.docker.com/)

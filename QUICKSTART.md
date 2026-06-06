@@ -19,7 +19,7 @@
 
 ### Windows Development (Already Done)
 ```powershell
-# Added Npgsql.EntityFrameworkCore.PostgreSQL package
+# Added Npgsql and Dapper packages
 # Changed from SQL Server to PostgreSQL in Program.cs
 # Updated appsettings.json with PostgreSQL connection string
 # Created appsettings.Production.json for Ubuntu deployment
