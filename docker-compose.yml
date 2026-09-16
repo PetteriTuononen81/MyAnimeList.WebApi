@@ -25,6 +25,8 @@ services:
       context: .
       dockerfile: MyAnimeList.Backend/Dockerfile
     container_name: myanimelist-api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
@@ -32,7 +34,7 @@ services:
     ports:
       - "5000:8080"
     depends_on:
-      postgres:
+      postgres: 
         condition: service_healthy
     networks:
       - myanimelist-network
