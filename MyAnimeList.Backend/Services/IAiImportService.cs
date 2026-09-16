@@ -38,7 +38,7 @@ namespace MyAnimeList.Backend.Services
 
             var payload = new
             {
-                model = "your-local-model-name", // e.g., "llama3" or "mistral"
+                model = "qwen2.5:1.5b", // e.g., "llama3" or "mistral"
                 prompt = $"{systemPrompt}\n\nInput:\n{rawText}",
                 stream = false
             };
