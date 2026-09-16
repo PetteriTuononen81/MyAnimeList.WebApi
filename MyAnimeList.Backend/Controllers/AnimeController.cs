@@ -143,7 +143,7 @@ namespace MyAnimeList.Backend.Controllers
             // Step 2: Save parsed items to your database
             // Step 3: Return resulting Anime[] list to Angular
 
-            return Ok(new List<AnimeImportDto>());
+            return Ok(parsedAnimes);
         }
     }
 }
