@@ -10,11 +10,13 @@ namespace MyAnimeList.Backend.Controllers
     public class AnimeController : ControllerBase
     {
         private readonly IAnimeService _animeService;
+        private readonly IAiImportService _aiImportService;
         private readonly ILogger<AnimeController> _logger;
 
-        public AnimeController(IAnimeService animeService, ILogger<AnimeController> logger)
+        public AnimeController(IAnimeService animeService, IAiImportService aiImportService, ILogger<AnimeController> logger)
         {
             _animeService = animeService;
+            _aiImportService = aiImportService;
             _logger = logger;
         }
 
@@ -126,6 +128,22 @@ namespace MyAnimeList.Backend.Controllers
         {
             var count = await _animeService.SyncAnimeDataAsync(maxPages);
             return Ok(new { message = "Anime data synced successfully", count = count });
+        }
+
+        [HttpPost("bulk-import")]
+        public async Task<IActionResult> BulkImport([FromBody] BulkImportRequestDto request)
+        {
+            if (string.IsNullOrWhiteSpace(request.RawText))
+            {
+                return BadRequest(new { message = "Raw import text cannot be empty." });
+            }
+
+            // Step 1: Forward request.RawText to local AI model endpoint
+            List<AnimeImportDto> parsedAnimes = await _aiImportService.ParseRawTextAsync(request.RawText);
+            // Step 2: Save parsed items to your database
+            // Step 3: Return resulting Anime[] list to Angular
+
+            return Ok(new List<AnimeImportDto>());
         }
     }
 }
