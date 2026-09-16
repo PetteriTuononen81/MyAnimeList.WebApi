@@ -46,7 +46,7 @@ namespace MyAnimeList.Backend.Services
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
             // 1. Send request to your local AI endpoint
-            var response = await _httpClient.PostAsync("http://localhost:11434/api/generate", content);
+            var response = await _httpClient.PostAsync("http://host.docker.internal:11434/api/generate", content);
             response.EnsureSuccessStatusCode();
 
             var responseBody = await response.Content.ReadAsStringAsync();
