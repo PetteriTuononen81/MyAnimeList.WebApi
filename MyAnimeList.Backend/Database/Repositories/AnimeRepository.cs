@@ -151,18 +151,30 @@ namespace MyAnimeList.Backend.Database.Repositories
         {
             await using var connection = new NpgsqlConnection(_connectionString);
 
+            var cleanTitle = title.Trim();
+
             var sql = @"
-                    SELECT a.*
+                    SELECT DISTINCT ON (a.malid) a.*
                     FROM anime a
                     LEFT JOIN animetitles t ON a.malid = t.malid
                     WHERE a.title ILIKE @Query 
-                    OR a.englishtitle ILIKE @Query 
-                    OR t.title ILIKE @Query
-                    LIMIT 1;";
+                        OR a.englishtitle ILIKE @Query 
+                        OR t.title ILIKE @Query
+                    ORDER BY a.malid,
+            
+                    CASE WHEN a.type = 'TV' THEN 1 ELSE 2 END,
+           
+                    GREATEST(
+                        similarity(a.title, @ExactTitle), 
+                        COALESCE(similarity(a.englishtitle, @ExactTitle), 0),
+                        COALESCE(similarity(t.title, @ExactTitle), 0)
+                    ) DESC,
+                        LENGTH(a.title) ASC
+                    LIMIT 1; ";
 
             return await connection.QueryFirstOrDefaultAsync<Anime>(
                 sql,
-                new { Query = $"%{title.Trim()}%" }
+                new { Query = $"%{cleanTitle}%", ExactTitle = cleanTitle }
             );
         }
     }
