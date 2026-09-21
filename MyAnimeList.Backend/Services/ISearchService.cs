@@ -24,7 +24,7 @@ namespace MyAnimeList.Backend.Services
             var tasks = parsedAnimes.Select(async item =>
             {
                 var matchedAnime = await _animeRepository.SearchByTitleAsync(item.Title);
-                return item.(matchedAnime);
+                return item.ToCandidateResponse(matchedAnime);
             });
 
             var results = await Task.WhenAll(tasks);
