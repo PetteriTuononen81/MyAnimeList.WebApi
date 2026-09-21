@@ -161,8 +161,6 @@ namespace MyAnimeList.Backend.Database.Repositories
                         OR a.englishtitle ILIKE @Query 
                         OR t.title ILIKE @Query
                     ORDER BY a.malid,
-            
-                    CASE WHEN a.type = 'TV' THEN 1 ELSE 2 END,
            
                     GREATEST(
                         similarity(a.title, @ExactTitle), 
