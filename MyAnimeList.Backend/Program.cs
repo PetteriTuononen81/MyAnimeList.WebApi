@@ -21,6 +21,7 @@ builder.Services.AddScoped<IAnimeService, AnimeService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
 builder.Services.AddHttpClient<IAiImportService, AiImportService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
 
 // Add repositories (now using Dapper with direct SQL queries)
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
