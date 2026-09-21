@@ -13,11 +13,13 @@ namespace MyAnimeList.Tests.Fixtures
     public class AnimeControllerFixture
     {
         public Mock<IAnimeService> MockAnimeService { get; }
+        public Mock<ISearchService> MockSearchService { get; }
         public Mock<ILogger<AnimeController>> MockLogger { get; }
 
         public AnimeControllerFixture()
         {
             MockAnimeService = new Mock<IAnimeService>();
+            MockSearchService = new Mock<ISearchService>();
             MockLogger = new Mock<ILogger<AnimeController>>();
         }
 

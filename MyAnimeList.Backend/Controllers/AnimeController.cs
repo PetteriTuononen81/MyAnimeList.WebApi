@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Validation;
 using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Models.Dtos;
 using MyAnimeList.Backend.Services;
@@ -11,12 +12,14 @@ namespace MyAnimeList.Backend.Controllers
     {
         private readonly IAnimeService _animeService;
         private readonly IAiImportService _aiImportService;
+        private readonly ISearchService _searchService;
         private readonly ILogger<AnimeController> _logger;
 
-        public AnimeController(IAnimeService animeService, IAiImportService aiImportService, ILogger<AnimeController> logger)
+        public AnimeController(IAnimeService animeService, IAiImportService aiImportService,ISearchService searchService, ILogger<AnimeController> logger)
         {
             _animeService = animeService;
             _aiImportService = aiImportService;
+            _searchService = searchService;
             _logger = logger;
         }
 
@@ -138,12 +141,10 @@ namespace MyAnimeList.Backend.Controllers
                 return BadRequest(new { message = "Raw import text cannot be empty." });
             }
 
-            // Step 1: Forward request.RawText to local AI model endpoint
             List<AnimeImportDto> parsedAnimes = await _aiImportService.ParseRawTextAsync(request.RawText);
-            // Step 2: Save parsed items to your database
-            // Step 3: Return resulting Anime[] list to Angular
-
-            return Ok(parsedAnimes);
+            var animesToReturn = await _searchService.EnrichWithDatabaseDataAsync(parsedAnimes);
+           
+            return Ok(animesToReturn);
         }
     }
 }

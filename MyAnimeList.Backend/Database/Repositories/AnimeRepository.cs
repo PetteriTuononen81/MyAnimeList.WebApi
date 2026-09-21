@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using Microsoft.Extensions.Configuration;
 using MyAnimeList.Backend.Models;
+using MyAnimeList.Backend.Models.Dtos;
 using Npgsql;
 
 namespace MyAnimeList.Backend.Database.Repositories
@@ -13,6 +14,8 @@ namespace MyAnimeList.Backend.Database.Repositories
         Task AddAsync(Anime anime);
         Task AddRangeAsync(IEnumerable<Anime> animes);
         Task UpdateAsync(Anime anime);
+
+        Task<Anime?> SearchByTitleAsync(string parsedAnime);
     }
 
     public class AnimeRepository : IAnimeRepository
@@ -142,6 +145,25 @@ namespace MyAnimeList.Backend.Database.Repositories
             {
                 await connection.ExecuteAsync(insertSql, new { MalId = malId, title.Type, title.Title });
             }
+        }
+
+        public async Task<Anime?> SearchByTitleAsync(string title)
+        {
+            await using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                    SELECT a.*
+                    FROM anime a
+                    LEFT JOIN animetitles t ON a.malid = t.malid
+                    WHERE a.title ILIKE @Query 
+                    OR a.englishtitle ILIKE @Query 
+                    OR t.title ILIKE @Query
+                    LIMIT 1;";
+
+            return await connection.QueryFirstOrDefaultAsync<Anime>(
+                sql,
+                new { Query = $"%{title.Trim()}%" }
+            );
         }
     }
 }

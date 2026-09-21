@@ -10,5 +10,6 @@
         public string Title { get; set; } = string.Empty;
         public string Status { get; set; } = "plan_to_watch";
         public double? Score { get; set; }
+        public string? Notes { get; set; }
     }
 }
