@@ -1,7 +1,6 @@
 ﻿namespace MyAnimeList.Backend.Mappers;
 
-using MyAnimeList.Backend.Dtos;
-using MyAnimeList.Backend.Models; // Adjust to your Anime entity namespace
+using MyAnimeList.Backend.Models; 
 using MyAnimeList.Backend.Models.Dtos;
 using MyAnimeList.Backend.Models.Response;
 
