@@ -21,69 +21,52 @@ namespace MyAnimeList.Backend.Services
         public async Task<List<AnimeImportDto>> ParseRawTextAsync(string rawText)
         {
             var systemPrompt = """
-                You are an exhaustive list extractor. Extract EVERY single anime entry from the user text into the requested JSON schema.
-                
-                Rules:
-                1. Include every title mentioned in the input, no matter how short.
-                2. If status is not mentioned, set "status" to "watching".
-                3. If score or notes are not explicitly stated, use empty strings or 0 instead of null.
+                You are a strict data extraction parser. Your task is to analyze raw, informal user lists of anime and convert them into a valid JSON array.
+
+                OUTPUT FORMAT:
+                Return ONLY a raw JSON array of objects with NO markdown formatting, NO backticks, and NO extra text.
+
+                JSON OBJECT SCHEMA:
+                - "title": Cleaned official title of the anime/movie (remove notes, ratings, or format descriptions like "(live action)").
+                - "status": Must be one of: "watching", "completed", "plan_to_watch", "dropped", or "on_hold". 
+                  * If user mentions "watching", "currently at", "and going", or "need to binge more" -> "watching".
+                  * If user mentions "all seasons", "good", "finished", or specific seasons watched -> "completed".
+                  * Default to "completed" if implied, or "plan_to_watch" if unknown.
+                - "score": A numeric rating out of 10 if explicitly mentioned; otherwise null.
+                - "notes": Extract any user commentary/thoughts into a string, or null if none.
                 """;
 
             var payload = new
             {
-                model = "qwen2.5:1.5b",
-                prompt = $"{systemPrompt}\n\nInput Text:\n{rawText}",
-                // Enforce a strict JSON schema directly via Ollama
-                format = new
-                {
-                    type = "object",
-                    properties = new
-                    {
-                        animes = new
-                        {
-                            type = "array",
-                            items = new
-                            {
-                                type = "object",
-                                properties = new
-                                {
-                                    title = new { type = "string" },
-                                    status = new { type = "string" },
-                                    score = new { type = "integer" },
-                                    notes = new { type = "string" }
-                                },
-                                required = new[] { "title", "status" }
-                            }
-                        }
-                    },
-                    required = new[] { "animes" }
-                },
-                stream = false,
-                options = new
-                {
-                    num_predict = 3072,
-                    temperature = 0.0
-                }
+                model = "qwen2.5:1.5b", // e.g., "llama3" or "mistral"
+                prompt = $"{systemPrompt}\n\nInput:\n{rawText}",
+                stream = false
             };
 
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("api/generate", content);
+            // 1. Send request to your local AI endpoint
+            var response = await _httpClient.PostAsync("http://host.docker.internal:11434/api/generate", content);
             response.EnsureSuccessStatusCode();
 
             var responseBody = await response.Content.ReadAsStringAsync();
 
+            // 2. Extract raw AI text response
             using var doc = JsonDocument.Parse(responseBody);
-            var rawAiText = doc.RootElement.GetProperty("response").GetString() ?? "{}";
+            var rawAiText = doc.RootElement.GetProperty("response").GetString() ?? "[]";
 
+            // 3. USE CLEANING HELPER HERE before deserializing
             var cleanedJson = CleanJsonResponse(rawAiText);
 
-            return ParseAnimeList(cleanedJson);
+            // 4. Deserialize into typed list
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            return JsonSerializer.Deserialize<List<AnimeImportDto>>(cleanedJson, options) ?? new List<AnimeImportDto>();
         }
 
+        // Helper method placed inside the class
         private string CleanJsonResponse(string input)
         {
-            if (string.IsNullOrWhiteSpace(input)) return "{}";
+            if (string.IsNullOrWhiteSpace(input)) return "[]";
 
             var cleaned = input.Trim();
             if (cleaned.StartsWith("```json")) cleaned = cleaned.Substring(7);
@@ -91,39 +74,6 @@ namespace MyAnimeList.Backend.Services
             if (cleaned.EndsWith("```")) cleaned = cleaned.Substring(0, cleaned.Length - 3);
 
             return cleaned.Trim();
-        }
-
-        private List<AnimeImportDto> ParseAnimeList(string json)
-        {
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-
-            try
-            {
-                using var parseDoc = JsonDocument.Parse(json);
-                var root = parseDoc.RootElement;
-
-                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("animes", out var animesElement))
-                {
-                    if (animesElement.ValueKind == JsonValueKind.Array)
-                    {
-                        var items = JsonSerializer.Deserialize<List<AnimeImportDto>>(animesElement.GetRawText(), options) ?? new List<AnimeImportDto>();
-
-                        // Sanitize non-explicit values back to clean nulls for your frontend/DTOs
-                        foreach (var item in items)
-                        {
-                            if (item.Score == 0) item.Score = null;
-                            if (string.IsNullOrWhiteSpace(item.Notes)) item.Notes = null;
-                        }
-                        return items;
-                    }
-                }
-            }
-            catch (JsonException)
-            {
-                // Fallback
-            }
-
-            return new List<AnimeImportDto>();
         }
     }
 }
