@@ -22,7 +22,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
 builder.Services.AddHttpClient<IAiImportService, AiImportService>(client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:11434/");
+    // Point to host machine or docker-compose service name instead of localhost
+    client.BaseAddress = new Uri("http://host.docker.internal:11434/");
 });
 builder.Services.AddScoped<ISearchService, SearchService>();
 

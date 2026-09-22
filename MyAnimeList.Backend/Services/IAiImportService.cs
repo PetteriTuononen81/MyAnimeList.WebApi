@@ -33,7 +33,8 @@ namespace MyAnimeList.Backend.Services
             var payload = new
             {
                 model = "qwen2.5:1.5b",
-                prompt = $"{systemPrompt}\n\nInput:\n{rawText}", 
+                prompt = $"{systemPrompt}\n\nInput:\n{rawText}",
+                format = "json", 
                 stream = false,
                 options = new
                 {
