@@ -21,39 +21,48 @@ namespace MyAnimeList.Backend.Services
         public async Task<List<AnimeImportDto>> ParseRawTextAsync(string rawText)
         {
             var systemPrompt = """
-                Extract EVERY single anime listed in the user text. Do NOT stop after one item.
-
-                Respond ONLY with a JSON object containing an "animes" array like this:
-                {
-                  "animes": [
-                    {
-                      "title": "Anime Title 1",
-                      "status": "watching",
-                      "score": 8,
-                      "notes": "optional notes"
-                    },
-                    {
-                      "title": "Anime Title 2",
-                      "status": "completed",
-                      "score": null,
-                      "notes": null
-                    }
-                  ]
-                }
-
-                Status must be one of: "watching", "completed", "plan_to_watch", "dropped", "on_hold".
+                You are an exhaustive list extractor. Extract EVERY single anime entry from the user text into the requested JSON schema.
+                
+                Rules:
+                1. Include every title mentioned in the input, no matter how short.
+                2. If status is not mentioned, set "status" to "watching".
+                3. If score or notes are not explicitly stated, use empty strings or 0 instead of null.
                 """;
 
             var payload = new
             {
                 model = "qwen2.5:1.5b",
                 prompt = $"{systemPrompt}\n\nInput Text:\n{rawText}",
-                format = "json",
+                // Enforce a strict JSON schema directly via Ollama
+                format = new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        animes = new
+                        {
+                            type = "array",
+                            items = new
+                            {
+                                type = "object",
+                                properties = new
+                                {
+                                    title = new { type = "string" },
+                                    status = new { type = "string" },
+                                    score = new { type = "integer" },
+                                    notes = new { type = "string" }
+                                },
+                                required = new[] { "title", "status" }
+                            }
+                        }
+                    },
+                    required = new[] { "animes" }
+                },
                 stream = false,
                 options = new
                 {
-                    num_predict = 2048,
-                    temperature = 0.1
+                    num_predict = 3072,
+                    temperature = 0.0
                 }
             };
 
@@ -93,33 +102,25 @@ namespace MyAnimeList.Backend.Services
                 using var parseDoc = JsonDocument.Parse(json);
                 var root = parseDoc.RootElement;
 
-                // Handle direct object wrapping: {"animes": [...]} or {"items": [...]}
-                if (root.ValueKind == JsonValueKind.Object)
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("animes", out var animesElement))
                 {
-                    foreach (var property in root.EnumerateObject())
+                    if (animesElement.ValueKind == JsonValueKind.Array)
                     {
-                        if (property.Value.ValueKind == JsonValueKind.Array)
+                        var items = JsonSerializer.Deserialize<List<AnimeImportDto>>(animesElement.GetRawText(), options) ?? new List<AnimeImportDto>();
+
+                        // Sanitize non-explicit values back to clean nulls for your frontend/DTOs
+                        foreach (var item in items)
                         {
-                            return JsonSerializer.Deserialize<List<AnimeImportDto>>(property.Value.GetRawText(), options) ?? new List<AnimeImportDto>();
+                            if (item.Score == 0) item.Score = null;
+                            if (string.IsNullOrWhiteSpace(item.Notes)) item.Notes = null;
                         }
+                        return items;
                     }
-
-                    // Fallback if model returned a single object instead of array wrapper
-                    var singleItem = JsonSerializer.Deserialize<AnimeImportDto>(json, options);
-                    return singleItem != null && !string.IsNullOrEmpty(singleItem.Title)
-                        ? new List<AnimeImportDto> { singleItem }
-                        : new List<AnimeImportDto>();
-                }
-
-                // Direct array fallback: [...]
-                if (root.ValueKind == JsonValueKind.Array)
-                {
-                    return JsonSerializer.Deserialize<List<AnimeImportDto>>(json, options) ?? new List<AnimeImportDto>();
                 }
             }
             catch (JsonException)
             {
-                // Parse failure fallback
+                // Fallback
             }
 
             return new List<AnimeImportDto>();
