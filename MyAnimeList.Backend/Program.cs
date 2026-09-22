@@ -20,7 +20,10 @@ builder.Services.AddScoped<ISqlMigrationService, SqlMigrationService>();
 builder.Services.AddScoped<IAnimeService, AnimeService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
-builder.Services.AddHttpClient<IAiImportService, AiImportService>();
+builder.Services.AddHttpClient<IAiImportService, AiImportService>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:11434/");
+});
 builder.Services.AddScoped<ISearchService, SearchService>();
 
 // Add repositories (now using Dapper with direct SQL queries)
