@@ -12,10 +12,12 @@ namespace MyAnimeList.Backend.Services
     public class AiImportService : IAiImportService
     {
         private readonly HttpClient _httpClient;
+        private readonly ILogger<AiImportService> _logger;
 
-        public AiImportService(HttpClient httpClient)
+        public AiImportService(HttpClient httpClient, ILogger<AiImportService> logger)
         {
             _httpClient = httpClient;
+            _logger = logger;
         }
 
         public async Task<List<AnimeImportDto>> ParseRawTextAsync(string rawText)
@@ -54,9 +56,14 @@ namespace MyAnimeList.Backend.Services
             // 2. Extract raw AI text response
             using var doc = JsonDocument.Parse(responseBody);
             var rawAiText = doc.RootElement.GetProperty("response").GetString() ?? "[]";
+            // LOG RAW AI OUTPUT
+            _logger.LogInformation("Raw AI Response from Ollama:\n{RawAiText}", rawAiText);
 
             // 3. USE CLEANING HELPER HERE before deserializing
             var cleanedJson = CleanJsonResponse(rawAiText);
+
+            // LOG CLEANED JSON OUTPUT
+            _logger.LogInformation("Cleaned JSON String:\n{CleanedJson}", cleanedJson);
 
             // 4. Deserialize into typed list
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
