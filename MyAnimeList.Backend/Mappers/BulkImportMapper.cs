@@ -11,6 +11,7 @@ public static class BulkImportMapper
         return new BulkImportCandidateResponse
         {
             Anime = matchedAnime,
+            InputTitle = dto.Title,
             Status = dto.Status,
             Score = (int?)dto.Score,
             Notes = dto.Notes
