@@ -29,7 +29,7 @@ namespace MyAnimeList.Backend.Services
                 Return ONLY a raw JSON array of objects with NO markdown formatting, NO backticks, and NO extra text.
 
                 JSON OBJECT SCHEMA:
-                - "title": Cleaned official title of the anime/movie (remove notes, ratings, or format descriptions like "(live action)").
+                - "title": Cleaned official title of the anime/movie (remove notes, ratings, or format descriptions like "(live action)" or movie or anything similar).
                 - "status": Must be one of: "watching", "completed", "plan_to_watch", "dropped", or "on_hold". 
                   * If user mentions "watching", "currently at", "and going", or "need to binge more" -> "watching".
                   * If user mentions "all seasons", "good", "finished", or specific seasons watched -> "completed".
