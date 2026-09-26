@@ -157,18 +157,20 @@ namespace MyAnimeList.Backend.Database.Repositories
                     SELECT DISTINCT ON (a.malid) a.*
                     FROM anime a
                     LEFT JOIN animetitles t ON a.malid = t.malid
-                    WHERE a.title ILIKE @Query 
-                        OR a.englishtitle ILIKE @Query 
+                        WHERE a.title ILIKE @Query
+                        OR a.englishtitle ILIKE @Query
                         OR t.title ILIKE @Query
+                        OR a.title % @ExactTitle
+                        OR a.englishtitle % @ExactTitle
+                        OR t.title % @ExactTitle
                     ORDER BY a.malid,
-           
-                    GREATEST(
-                        similarity(a.title, @ExactTitle), 
-                        COALESCE(similarity(a.englishtitle, @ExactTitle), 0),
-                        COALESCE(similarity(t.title, @ExactTitle), 0)
-                    ) DESC,
-                        LENGTH(a.title) ASC
-                    LIMIT 1; ";
+                        GREATEST(
+                            similarity(a.title, @ExactTitle), 
+                            COALESCE(similarity(a.englishtitle, @ExactTitle), 0),
+                            COALESCE(similarity(t.title, @ExactTitle), 0)
+                        ) DESC,
+                    LENGTH(a.title) ASC
+                    LIMIT 1;";
 
             return await connection.QueryFirstOrDefaultAsync<Anime>(
                 sql,
