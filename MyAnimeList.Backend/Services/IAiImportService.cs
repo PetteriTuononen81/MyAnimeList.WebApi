@@ -1,6 +1,7 @@
 ﻿using MyAnimeList.Backend.Models.Dtos;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace MyAnimeList.Backend.Services
 {
@@ -22,6 +23,8 @@ namespace MyAnimeList.Backend.Services
 
         public async Task<List<AnimeImportDto>> ParseRawTextAsync(string rawText)
         {
+            var cleanTitle = Regex.Replace(rawText, @"(?i)(:\s*the\s*movie|season\s*\d+|ova|special|\(tv\))","").Trim();
+
             var systemPrompt = """
                 You are a strict data extraction parser. Your task is to analyze raw, informal user lists of anime and convert them into a valid JSON array.
 
@@ -29,7 +32,7 @@ namespace MyAnimeList.Backend.Services
                 Return ONLY a raw JSON array of objects with NO markdown formatting, NO backticks, and NO extra text.
 
                 JSON OBJECT SCHEMA:
-                - "title": Cleaned official title of the anime/movie (remove notes, ratings, or format descriptions like "(live action)" or movie or season any type description a specialy anything in parentheses).
+                - "title": Extract the main official title. Strip format suffixes like ": The Movie", "Season 2", or "OVA" (e.g., convert "Hellsing: The Movie" -> "Hellsing").
                 - "status": Must be one of: "watching", "completed", "plan_to_watch", "dropped", or "on_hold". 
                   * If user mentions "watching", "currently at", "and going", or "need to binge more" -> "watching".
                   * If user mentions "all seasons", "good", "finished", or specific seasons watched -> "completed".
