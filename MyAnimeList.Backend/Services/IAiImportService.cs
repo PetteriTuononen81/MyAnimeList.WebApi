@@ -67,7 +67,13 @@ namespace MyAnimeList.Backend.Services
 
             // 4. Deserialize into typed list
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            return JsonSerializer.Deserialize<List<AnimeImportDto>>(cleanedJson, options) ?? new List<AnimeImportDto>();
+            var items = JsonSerializer.Deserialize<List<AnimeImportDto>>(cleanedJson, options) ?? new List<AnimeImportDto>();
+
+            // 5. Remove duplicates by Title (case-insensitive)
+            return items
+                .Where(x => !string.IsNullOrWhiteSpace(x.Title))
+                .DistinctBy(x => x.Title.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         // Helper method placed inside the class
