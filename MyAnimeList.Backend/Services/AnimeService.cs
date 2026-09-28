@@ -1,6 +1,7 @@
 ﻿using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Database.Repositories;
 using Microsoft.Extensions.Logging;
+using MyAnimeList.Backend.Services.ApiClient;
 
 namespace MyAnimeList.Backend.Services
 {

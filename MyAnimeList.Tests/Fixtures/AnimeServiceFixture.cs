@@ -3,6 +3,7 @@ using Moq;
 using MyAnimeList.Backend.Database.Repositories;
 using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Services;
+using MyAnimeList.Backend.Services.ApiClient;
 
 namespace MyAnimeList.Tests.Fixtures
 {

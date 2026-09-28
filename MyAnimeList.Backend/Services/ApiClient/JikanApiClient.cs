@@ -2,7 +2,7 @@
 using MyAnimeList.Backend.Helpers;
 using MyAnimeList.Backend.Models;
 
-namespace MyAnimeList.Backend.Services
+namespace MyAnimeList.Backend.Services.ApiClient
 {
     public class JikanApiClient
     {

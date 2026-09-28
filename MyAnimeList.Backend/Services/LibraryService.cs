@@ -3,6 +3,7 @@ using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Models.Dtos;
 using MyAnimeList.Backend.Database.Repositories;
 using Npgsql;
+using YourProjectNamespace.Services;
 
 namespace MyAnimeList.Backend.Services
 {
@@ -18,11 +19,13 @@ namespace MyAnimeList.Backend.Services
     {
         private readonly ILibraryRepository _libraryRepository;
         private readonly IAnimeRepository _animeRepository;
+        private readonly IAnimeMetadataService _animeMetadataService;
 
-        public LibraryService(ILibraryRepository libraryRepository, IAnimeRepository animeRepository)
+        public LibraryService(ILibraryRepository libraryRepository, IAnimeRepository animeRepository, IAnimeMetadataService animeMetadataService)
         {
             _libraryRepository = libraryRepository;
             _animeRepository = animeRepository;
+            _animeMetadataService = animeMetadataService;
         }
 
         public async Task<List<UserAnimeDto>> GetUserLibraryAsync(int userId, string? statusFilter = null)
@@ -51,20 +54,17 @@ namespace MyAnimeList.Backend.Services
 
         public async Task<UserAnimeDto?> AddToLibraryAsync(int userId, AddToLibraryDto dto)
         {
-            // Validate status
             if (!Enum.TryParse<AnimeWatchStatus>(dto.Status, true, out var parsedStatus))
             {
                 throw new ArgumentException($"Invalid status: {dto.Status}. Valid values are: Watching, Completed, OnGoing, Dropped, PlanToWatch");
             }
 
-            // Check if anime exists by MalId
             var anime = await _animeRepository.GetByMalIdAsync(dto.MalId);
             if (anime == null)
             {
                 throw new ArgumentException($"Anime with MalId {dto.MalId} not found");
             }
 
-            // Check if already in library
             var existing = await _libraryRepository.IsAnimeInLibraryAsync(userId, dto.MalId);
             if (existing)
             {
@@ -84,6 +84,9 @@ namespace MyAnimeList.Backend.Services
 
             var added = await _libraryRepository.AddToLibraryAsync(userAnime);
             added.Anime = await _animeRepository.GetByMalIdAsync(added.MalId);
+
+            _ = _animeMetadataService.GetOrFetchMetadataAsync(dto.MalId);
+
             return MapToDto(added);
         }
 

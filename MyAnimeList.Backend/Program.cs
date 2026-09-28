@@ -1,8 +1,12 @@
-using MyAnimeList.Backend.Database.Repositories;
-using MyAnimeList.Backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using MyAnimeList.Backend.Database.Repositories;
+using MyAnimeList.Backend.Services;
+using MyAnimeList.Backend.Services.ApiClient;
 using System.Text;
+using YourProjectNamespace.Clients;
+using YourProjectNamespace.Repositories;
+using YourProjectNamespace.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,25 +16,31 @@ builder.Services.AddOpenApi();
 
 // Add HTTP Client for Jikan API (for cron job sync only)
 builder.Services.AddHttpClient<JikanApiClient>();
+builder.Services.AddHttpClient<IAniListApiClient, AniListApiClient>(client =>
+{
+    client.BaseAddress = new Uri("https://graphql.anilist.co");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
 
-// Add SQL migration service (replaces EF migrations)
+// Add SQL migration service
 builder.Services.AddScoped<ISqlMigrationService, SqlMigrationService>();
 
-// Add services (now using Dapper with direct SQL queries)
+// Add services
 builder.Services.AddScoped<IAnimeService, AnimeService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
+builder.Services.AddScoped<IAnimeMetadataService, AnimeMetadataService>();
 builder.Services.AddHttpClient<IAiImportService, AiImportService>(client =>
 {
-    // Point to host machine or docker-compose service name instead of localhost
     client.BaseAddress = new Uri("http://host.docker.internal:11434/");
 });
 builder.Services.AddScoped<ISearchService, SearchService>();
 
-// Add repositories (now using Dapper with direct SQL queries)
+// Add repositories 
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAnimeRepository, AnimeRepository>();
 builder.Services.AddScoped<ILibraryRepository, LibraryRepository>();
+builder.Services.AddScoped<IAnimeMetadataRepository, AnimeMetadataRepository>();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
