@@ -9,9 +9,9 @@ public class AnimeMetadata
 
     public int Id { get; set; }
     public int MalId { get; set; }
-    public string? Demographic { get; set; }
-    public List<string> Themes { get; set; } = new();
-    public List<string> Genres { get; set; } = new();
+    public string[] Genres { get; set; } = Array.Empty<string>();
+    public string[] Themes { get; set; } = Array.Empty<string>();
+    public string Demographic { get; set; } = string.Empty;
 
     public DateTime LastUpdatedUtc { get; set; } = DateTime.UtcNow;
 
@@ -22,14 +22,14 @@ public class AnimeMetadata
             .FirstOrDefault(t => t.Category.Equals("Demographic", StringComparison.OrdinalIgnoreCase))
             ?.Name;
 
-        var genres = media.Genres ?? new List<string>();
+        var genres = media.Genres?.ToArray() ?? Array.Empty<string>();
 
         var themes = media.Tags?
             .Where(t => t.Category.StartsWith("Theme", StringComparison.OrdinalIgnoreCase)
                         && !t.IsGeneralSpoiler
                         && t.Rank >= 60)
             .Select(t => t.Name)
-            .ToList() ?? new List<string>();
+            .ToArray() ?? Array.Empty<string>();
 
         return new AnimeMetadata
         {
