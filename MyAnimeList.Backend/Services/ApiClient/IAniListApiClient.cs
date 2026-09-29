@@ -41,7 +41,10 @@ public class AniListApiClient : IAniListApiClient
         if (!response.IsSuccessStatusCode) return null;
 
         var result = await response.Content.ReadFromJsonAsync<AniListResponseWrapper>(
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
 
         return result?.Data?.Media;
     }
