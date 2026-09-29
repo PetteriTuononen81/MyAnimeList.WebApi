@@ -18,19 +18,18 @@ public class AnimeMetadata
 
     public static AnimeMetadata FromAniListMedia(AniListMedia media)
     {
-        var demographic = media.Genres
-            .FirstOrDefault(g => DemographicNames.Contains(g, StringComparer.OrdinalIgnoreCase));
+        var demographic = media.Tags?
+            .FirstOrDefault(t => t.Category.Equals("Demographic", StringComparison.OrdinalIgnoreCase))
+            ?.Name;
 
-        var genres = media.Genres
-            .Where(g => !DemographicNames.Contains(g, StringComparer.OrdinalIgnoreCase))
-            .ToList();
+        var genres = media.Genres ?? new List<string>();
 
-        var themes = media.Tags
-            .Where(t => t.Category.Equals("Theme", StringComparison.OrdinalIgnoreCase)
+        var themes = media.Tags?
+            .Where(t => t.Category.StartsWith("Theme", StringComparison.OrdinalIgnoreCase)
                         && !t.IsGeneralSpoiler
                         && t.Rank >= 60)
             .Select(t => t.Name)
-            .ToList();
+            .ToList() ?? new List<string>();
 
         return new AnimeMetadata
         {
