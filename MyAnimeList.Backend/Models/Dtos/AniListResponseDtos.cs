@@ -1,4 +1,4 @@
-﻿namespace YourProjectNamespace.DTOs;
+﻿namespace MyAnimeList.Backend.Models.Dtos;
 
 public class AniListResponseWrapper
 {

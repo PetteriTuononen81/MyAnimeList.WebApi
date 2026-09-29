@@ -1,13 +1,14 @@
 ﻿using Dapper;
 using Npgsql;
-using YourProjectNamespace.Entities;
+using MyAnimeList.Backend.Models;
 
-namespace YourProjectNamespace.Repositories;
+namespace MyAnimeList.Backend.Database.Repositories;
 
 public interface IAnimeMetadataRepository
 {
     Task<AnimeMetadata?> GetByMalIdAsync(int malId);
     Task UpsertAsync(AnimeMetadata metadata);
+    Task<IEnumerable<AnimeMetadata>> GetMetadataForUserLibraryAsync(int userId);
 }
 public class AnimeMetadataRepository : IAnimeMetadataRepository
 {
@@ -52,5 +53,24 @@ public class AnimeMetadataRepository : IAnimeMetadataRepository
                 lastupdatedutc = EXCLUDED.lastupdatedutc;";
 
         await connection.ExecuteAsync(sql, metadata);
+    }
+
+    public async Task<IEnumerable<AnimeMetadata>> GetMetadataForUserLibraryAsync(int userId)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+
+        const string sql = @"
+        SELECT DISTINCT
+            m.id AS Id,
+            m.malid AS MalId,
+            m.demographic AS Demographic,
+            m.themes AS Themes,
+            m.genres AS Genres,
+            m.lastupdatedutc AS LastUpdatedUtc
+        FROM animemetadata m
+        INNER JOIN useranime u ON m.malid = u.malid
+        WHERE u.userid = @userId;";
+
+        return await connection.QueryAsync<AnimeMetadata>(sql, new { userId });
     }
 }

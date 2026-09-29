@@ -1,8 +1,9 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
-using YourProjectNamespace.DTOs;
+using MyAnimeList.Backend.Models.Dtos;
 
-namespace YourProjectNamespace.Clients;
+
+namespace MyAnimeList.Backend.Services.ApiClient;
 
 public interface IAniListApiClient
 {

@@ -4,9 +4,6 @@ using MyAnimeList.Backend.Database.Repositories;
 using MyAnimeList.Backend.Services;
 using MyAnimeList.Backend.Services.ApiClient;
 using System.Text;
-using YourProjectNamespace.Clients;
-using YourProjectNamespace.Repositories;
-using YourProjectNamespace.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

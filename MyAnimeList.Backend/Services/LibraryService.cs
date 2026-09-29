@@ -3,7 +3,6 @@ using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Models.Dtos;
 using MyAnimeList.Backend.Database.Repositories;
 using Npgsql;
-using YourProjectNamespace.Services;
 
 namespace MyAnimeList.Backend.Services
 {

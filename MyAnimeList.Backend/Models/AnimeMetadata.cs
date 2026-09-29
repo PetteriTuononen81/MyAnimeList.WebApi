@@ -1,7 +1,7 @@
 ﻿using MyAnimeList.Backend.Models;
-using YourProjectNamespace.DTOs;
+using MyAnimeList.Backend.Models.Dtos;
 
-namespace YourProjectNamespace.Entities;
+namespace MyAnimeList.Backend.Models;
 
 public class AnimeMetadata
 {
