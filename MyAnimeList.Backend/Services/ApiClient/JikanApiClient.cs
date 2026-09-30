@@ -7,7 +7,9 @@ namespace MyAnimeList.Backend.Services.ApiClient
     public class JikanApiClient
     {
         private readonly HttpClient _httpClient;
-        private const string JikanBaseUrl = "https://api.jikan.moe/v4";
+        // Jikan longterm down getting 504 response
+        //private const string JikanBaseUrl = "https://api.jikan.moe/v4";
+        private const string JikanBaseUrl = "https://tenrai.org/v4";
 
         public JikanApiClient(HttpClient httpClient)
         {
