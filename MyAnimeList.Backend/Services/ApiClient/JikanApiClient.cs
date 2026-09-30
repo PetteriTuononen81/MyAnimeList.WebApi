@@ -21,11 +21,14 @@ namespace MyAnimeList.Backend.Services.ApiClient
         {
             try
             {
-                var url = $"{JikanBaseUrl}/anime?page={page}&limit={limit}&order_by=score&sort=desc";
+                var url = $"{JikanBaseUrl}/anime?page={page}&limit={limit}";
                 var response = await _httpClient.GetAsync(url);
+                Console.WriteLine($"[JikanApiClient] Response Status: {(int)response.StatusCode} {response.StatusCode} for URL: {url}");
                 response.EnsureSuccessStatusCode();
 
                 var content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[JikanApiClient] Received {content.Length} bytes of data from Jikan API.");
+
                 var jsonDocument = JsonDocument.Parse(content);
                 var animeList = new List<Anime>();
 
