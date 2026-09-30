@@ -3,6 +3,7 @@ using MyAnimeList.Backend.Services.ApiClient;
 using MyAnimeList.Backend.Models.Response;
 using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Database.Repositories;
+using MyAnimeList.Backend.Mappers;
 
 namespace MyAnimeList.Backend.Services;
 
@@ -16,18 +17,22 @@ public class AnimeMetadataService : IAnimeMetadataService
 {
     private readonly IAniListApiClient _apiClient;
     private readonly IAnimeMetadataRepository _repository;
-    private readonly ILibraryService _libraryService;
+    private readonly ILibraryRepository _libraryRepository;
+    private readonly IAnimeRepository _animeRepository;
     private readonly ILogger<AnimeMetadataService> _logger;
 
     public AnimeMetadataService(
         IAniListApiClient apiClient,
         IAnimeMetadataRepository repository,
-        ILibraryService libraryService,
+        ILibraryRepository libraryRepository,
+        IAnimeRepository animeRepository,
+
         ILogger<AnimeMetadataService> logger)
     {
         _apiClient = apiClient;
         _repository = repository;
-        _libraryService = libraryService;
+        _libraryRepository = libraryRepository;
+        _animeRepository = animeRepository;
         _logger = logger;
     }
 
@@ -54,7 +59,14 @@ public class AnimeMetadataService : IAnimeMetadataService
     public async Task<UserAnalyticsDto> GetUserAnalyticsAsync(int userId)
     {
         // Fetch both datasets concurrently
-        var library = await _libraryService.GetUserLibraryAsync(userId);
+        var userAnimes = await _libraryRepository.GetUserLibraryAsync(userId);
+        var dtoTasks = userAnimes.Select(async ua =>
+        {
+            ua.Anime = await _animeRepository.GetByMalIdAsync(ua.MalId);
+            return ua.ToDto();
+        });
+
+        var library = (await Task.WhenAll(dtoTasks)).ToList();
         var metadataList = await _repository.GetMetadataForUserLibraryAsync(userId);
 
         if ((library == null || !library.Any()) && (metadataList == null || !metadataList.Any()))
