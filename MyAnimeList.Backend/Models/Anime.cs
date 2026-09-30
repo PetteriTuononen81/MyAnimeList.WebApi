@@ -14,6 +14,7 @@
         public double? Score { get; set; }
         public string? ImageUrl { get; set; }
         public string? Genre { get; set; }
+        public string? Studio { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
@@ -50,6 +51,7 @@
             Synopsis = newAnime.Synopsis;
             ImageUrl = newAnime.ImageUrl;
             Genre = newAnime.Genre;
+            Studio = newAnime.Studio;
             AiredFrom = newAnime.AiredFrom;
             AiredTo = newAnime.AiredTo;
             UpdatedAt = DateTime.UtcNow;

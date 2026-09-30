@@ -107,6 +107,14 @@ public class AnimeMetadataService : IAnimeMetadataService
             .OrderByDescending(g => g.Count())
             .Take(10)
             .ToDictionary(g => g.Key, g => g.Count()) ?? new();
+        
+        var topStudios = library?
+            .Where(x => x.Anime != null && !string.IsNullOrEmpty(x.Anime.Studio))
+            .SelectMany(x => x.Anime!.Studio!.Split(',', StringSplitOptions.TrimEntries))
+            .GroupBy(studio => studio)
+            .OrderByDescending(g => g.Count())
+            .Take(5)
+            .ToDictionary(g => g.Key, g => g.Count()) ?? new();
 
         return new UserAnalyticsDto
         {
@@ -116,7 +124,8 @@ public class AnimeMetadataService : IAnimeMetadataService
             RecentlyCompletedTitle = recentlyCompletedTitle,
             Demographics = demographics,
             TopGenres = topGenres,
-            TopThemes = topThemes
+            TopThemes = topThemes,
+            TopStudios = topStudios
         };
     }
 }

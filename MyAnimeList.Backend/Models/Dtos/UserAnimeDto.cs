@@ -27,6 +27,7 @@ namespace MyAnimeList.Backend.Models.Dtos
         public double? Score { get; set; }
         public string? ImageUrl { get; set; }
         public string? Genre { get; set; }
+        public string? Studio { get; set; }
         public List<TitleDto>? Titles { get; set; }
     }
 

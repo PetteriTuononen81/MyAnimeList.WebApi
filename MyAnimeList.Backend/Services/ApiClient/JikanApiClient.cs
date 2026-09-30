@@ -104,6 +104,7 @@ namespace MyAnimeList.Backend.Services.ApiClient
                 AiredFrom = element.GetNestedProperty("aired")?.GetDateTimeProperty("from"),
                 AiredTo = element.GetNestedProperty("aired")?.GetDateTimeProperty("to"),
                 Genre = element.GetArrayAsString("genres", "name"),
+                Studio = element.GetArrayAsString("studios", "name"),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
