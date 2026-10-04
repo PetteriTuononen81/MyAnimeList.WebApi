@@ -39,6 +39,7 @@ public static class UserAnimeMapper
             Score = anime.Score,
             ImageUrl = anime.ImageUrl,
             Genre = anime.Genre,
+            Studio = anime.Studio,
             Titles = anime.Titles?.Select(t => new TitleDto
             {
                 Type = t.Type,
