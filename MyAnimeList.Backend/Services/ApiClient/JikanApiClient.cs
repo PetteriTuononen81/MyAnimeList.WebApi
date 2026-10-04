@@ -1,15 +1,15 @@
 ﻿using System.Text.Json;
 using MyAnimeList.Backend.Helpers;
 using MyAnimeList.Backend.Models;
+using MyAnimeList.Backend.Models.Response;
 
 namespace MyAnimeList.Backend.Services.ApiClient
 {
-    public class JikanApiClient
+
+    public class JikanApiClient : IAnimeApiClient
     {
         private readonly HttpClient _httpClient;
-        // Jikan longterm down getting 504 response
-        //private const string JikanBaseUrl = "https://api.jikan.moe/v4";
-        private const string JikanBaseUrl = "https://tenrai.org/v4";
+        private const string JikanBaseUrl = "https://api.jikan.moe/v4";
 
         public JikanApiClient(HttpClient httpClient)
         {
@@ -19,7 +19,7 @@ namespace MyAnimeList.Backend.Services.ApiClient
         /// <summary>
         /// Fetches a single page of anime data from Jikan API
         /// </summary>
-        public async Task<JikanApiResponse> FetchAnimePageAsync(int page = 1, int limit = 25)
+        public async Task<AnimeApiResponse> FetchAnimePageAsync(int page = 1, int limit = 25)
         {
             try
             {
@@ -54,7 +54,7 @@ namespace MyAnimeList.Backend.Services.ApiClient
                     }
                 }
 
-                return new JikanApiResponse
+                return new AnimeApiResponse
                 {
                     Data = animeList,
                     CurrentPage = page,
@@ -65,7 +65,7 @@ namespace MyAnimeList.Backend.Services.ApiClient
             catch (Exception ex)
             {
                 Console.WriteLine($"Error fetching anime data: {ex.Message}");
-                return new JikanApiResponse
+                return new AnimeApiResponse
                 {
                     Data = new List<Anime>(),
                     CurrentPage = page,
@@ -126,16 +126,5 @@ namespace MyAnimeList.Backend.Services.ApiClient
 
             return anime;
         }
-    }
-
-    /// <summary>
-    /// Response from Jikan API including pagination info
-    /// </summary>
-    public class JikanApiResponse
-    {
-        public List<Anime> Data { get; set; } = new();
-        public int CurrentPage { get; set; }
-        public int LastPage { get; set; }
-        public bool HasNextPage { get; set; }
     }
 }
