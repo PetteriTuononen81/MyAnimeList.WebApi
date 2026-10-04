@@ -3,6 +3,7 @@ using MyAnimeList.Backend.Models;
 using MyAnimeList.Backend.Models.Dtos;
 using MyAnimeList.Backend.Database.Repositories;
 using Npgsql;
+using MyAnimeList.Backend.Mappers;
 
 namespace MyAnimeList.Backend.Services
 {
@@ -45,7 +46,7 @@ namespace MyAnimeList.Backend.Services
             var dtoTasks = userAnimes.Select(async ua =>
             {
                 ua.Anime = await _animeRepository.GetByMalIdAsync(ua.MalId);
-                return MapToDto(ua);
+                return ua.ToDto();
             });
 
             return (await Task.WhenAll(dtoTasks)).ToList();
@@ -86,7 +87,7 @@ namespace MyAnimeList.Backend.Services
 
             _ = _animeMetadataService.GetOrFetchMetadataAsync(dto.MalId);
 
-            return MapToDto(added);
+            return added.ToDto();
         }
 
         public async Task<UserAnimeDto?> UpdateLibraryItemAsync(int userId, int malId, UpdateLibraryDto dto)
@@ -122,45 +123,12 @@ namespace MyAnimeList.Backend.Services
 
             var updated = await _libraryRepository.UpdateLibraryItemAsync(userAnime);
             updated.Anime = await _animeRepository.GetByMalIdAsync(updated.MalId);
-            return MapToDto(updated);
+            return updated.ToDto();
         }
 
         public async Task<bool> RemoveFromLibraryAsync(int userId, int malId)
         {
             return await _libraryRepository.RemoveFromLibraryAsync(userId, malId);
-        }
-
-        private UserAnimeDto MapToDto(UserAnime userAnime)
-        {
-            return new UserAnimeDto
-            {
-                Id = userAnime.Id,
-                UserId = userAnime.UserId,
-                MalId = userAnime.MalId,
-                Status = userAnime.Status.ToString(),
-                UserScore = userAnime.UserScore,
-                Notes = userAnime.Notes,
-                DateAdded = userAnime.DateAdded,
-                DateUpdated = userAnime.DateUpdated,
-                Anime = userAnime.Anime != null ? new AnimeDto
-                {
-                    Id = userAnime.Anime.Id,
-                    MalId = userAnime.Anime.MalId,
-                    Title = userAnime.Anime.Title,
-                    EnglishTitle = userAnime.Anime.EnglishTitle,
-                    Synopsis = userAnime.Anime.Synopsis,
-                    Episodes = userAnime.Anime.Episodes,
-                    Status = userAnime.Anime.Status,
-                    Score = userAnime.Anime.Score,
-                    ImageUrl = userAnime.Anime.ImageUrl,
-                    Genre = userAnime.Anime.Genre,
-                    Titles = userAnime.Anime.Titles?.Select(t => new TitleDto
-                    {
-                        Type = t.Type,
-                        Title = t.Title
-                    }).ToList()
-                } : null
-            };
         }
     }
 }

@@ -8,5 +8,4 @@ namespace MyAnimeList.Backend.Services.ApiClient
         Task<AnimeApiResponse> FetchAnimePageAsync(int page = 1, int limit = 25);
         Task<List<Anime>> FetchAnimeListAsync(int page = 1, int limit = 25);
     }
-
 }

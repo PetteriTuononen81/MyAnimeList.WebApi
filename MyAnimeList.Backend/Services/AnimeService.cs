@@ -16,17 +16,17 @@ namespace MyAnimeList.Backend.Services
     public class AnimeService : IAnimeService
     {
         private readonly IAnimeRepository _animeRepository;
-        private readonly JikanApiClient _jikanApiClient;
+        private readonly IAnimeApiClient _animeApiClient;
         private readonly ILogger<AnimeService> _logger;
 
         // Jikan API rate limit: 3 requests per second, so 4 seconds is safe
         private const int DelayBetweenRequestsMs = 4000;
         private const int ItemsPerPage = 25;
 
-        public AnimeService(IAnimeRepository animeRepository, JikanApiClient jikanApiClient, ILogger<AnimeService> logger)
+        public AnimeService(IAnimeRepository animeRepository, IAnimeApiClient animeApiClient, ILogger<AnimeService> logger)
         {
             _animeRepository = animeRepository;
-            _jikanApiClient = jikanApiClient;
+            _animeApiClient = animeApiClient;
             _logger = logger;
         }
 
@@ -44,9 +44,9 @@ namespace MyAnimeList.Backend.Services
             var totalCount = allAnime.Count;
 
             var paginatedAnime = allAnime
-                .OrderByDescending(a => a.Score.HasValue)  // Anime with scores come first
-                .ThenByDescending(a => a.Score ?? 0)       // Then sort by score descending
-                .ThenBy(a => a.Title)                       // Finally alphabetically by title
+                .OrderByDescending(a => a.Score.HasValue)
+                .ThenByDescending(a => a.Score ?? 0)
+                .ThenBy(a => a.Title)                       
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -61,7 +61,6 @@ namespace MyAnimeList.Backend.Services
 
             var allAnime = await _animeRepository.GetAllAsync();
 
-            // Filter by search term (case-insensitive search in title, english title, and genre)
             var filteredAnime = allAnime
                 .Where(a =>
                     (a.Title != null && a.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
@@ -73,9 +72,9 @@ namespace MyAnimeList.Backend.Services
             var totalCount = filteredAnime.Count;
 
             var paginatedAnime = filteredAnime
-                .OrderByDescending(a => a.Score.HasValue)  // Anime with scores come first
-                .ThenByDescending(a => a.Score ?? 0)       // Then sort by score descending
-                .ThenBy(a => a.Title)                       // Finally alphabetically by title
+                .OrderByDescending(a => a.Score.HasValue)
+                .ThenByDescending(a => a.Score ?? 0)       
+                .ThenBy(a => a.Title)                       
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -105,7 +104,7 @@ namespace MyAnimeList.Backend.Services
                     _logger.LogInformation("Fetching page {CurrentPage} of {LastPage}...", currentPage, lastPage);
 
                     // Fetch current page
-                    var response = await _jikanApiClient.FetchAnimePageAsync(page: currentPage, limit: ItemsPerPage);
+                    var response = await _animeApiClient.FetchAnimePageAsync(page: currentPage, limit: ItemsPerPage);
 
                     if (response.Data.Count == 0)
                     {
