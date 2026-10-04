@@ -12,8 +12,6 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 // Add HTTP Client for Jikan or Tenrai API (for cron job sync only, currently manual call)
-builder.Services.AddHttpClient<JikanApiClient>();
-builder.Services.AddHttpClient<TenraiApiClient>();
 builder.Services.AddScoped<IAnimeApiClient, TenraiApiClient>(); // Current API client for anime data
 builder.Services.AddHttpClient<IAniListApiClient, AniListApiClient>(client =>
 {
