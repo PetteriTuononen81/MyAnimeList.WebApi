@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using MyAnimeList.Backend.Helpers;
 using MyAnimeList.Backend.Models;
+using MyAnimeList.Backend.Models.Response;
 
 namespace MyAnimeList.Backend.Services.ApiClient
 {
