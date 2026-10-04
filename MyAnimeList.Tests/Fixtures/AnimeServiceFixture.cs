@@ -16,14 +16,14 @@ namespace MyAnimeList.Tests.Fixtures
         public Mock<IAnimeRepository> MockRepository { get; }
         public Mock<ILogger<AnimeService>> MockLogger { get; }
         public HttpClient HttpClient { get; }
-        public JikanApiClient JikanClient { get; }
+        public IJikanApiClient JikanClient { get; }
 
         public AnimeServiceFixture()
         {
             MockRepository = new Mock<IAnimeRepository>();
             MockLogger = new Mock<ILogger<AnimeService>>();
             HttpClient = new HttpClient();
-            JikanClient = new JikanApiClient(HttpClient);
+            JikanClient = new IJikanApiClient(HttpClient);
         }
 
         /// <summary>
